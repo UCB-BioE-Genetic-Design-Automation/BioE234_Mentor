@@ -5,7 +5,7 @@ from .protocol import parse_response, MentorResponse
 from .display import show
 from .tasks import run_client_task
 
-def submit(passkey: str, assignment: str, submission: Optional[Any] = None, artifacts: Optional[Dict[str, Any]] = None) -> MentorResponse:
+def submit(passkey: str, assignment: str, submission: Optional[Any] = None, artifacts: Optional[Dict[str, Any]] = None, return_response: bool = False) -> Optional[MentorResponse]:
     payload: Dict[str, Any] = {
         "passkey": passkey,
         "assignment": assignment,
@@ -28,6 +28,10 @@ def submit(passkey: str, assignment: str, submission: Optional[Any] = None, arti
         })
         resp2 = parse_response(raw2)
         show(resp2)
-        return resp2
+        if return_response:
+            return resp2
+        return None
 
-    return resp
+    if return_response:
+        return resp
+    return None
