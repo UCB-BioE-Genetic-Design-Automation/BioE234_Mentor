@@ -1,0 +1,32 @@
+STEP_ID: 160
+TITLE: Handoff to invalid_request
+STOP_REQUIRED: true
+
+ASSISTANT_RULES:
+- Do not present any content from invalid_request.txt to the student in this step.
+- In this step you may read invalid_request.txt only to determine what the first step ID of that section should be.
+- Update the session note status to the first step of the invalid_request section.
+- Append LOG_ON_SUCCESS.
+- Then stop.
+
+STUDENT_MESSAGE:
+Transitioning to the next section now.
+
+VALIDATION_RULES:
+- Confirm that the session note contains:
+  - passcode
+  - abstract_summary
+  - abstract_request_hash
+- If any are missing, do not proceed. Tell the student what is missing and keep status at 150.
+
+LOG_ON_ENTER:
+- <DATE>: Entered Step 160 (handoff to invalid_request).
+
+LOG_ON_SUCCESS:
+- <DATE>: Handoff complete. Transitioning to invalid_request section.
+
+LOG_ON_FAIL:
+- <DATE>: Handoff blocked. Missing abstract_request fields.
+
+NEXT_STEP_ON_SUCCESS: 170
+NEXT_STEP_ON_FAIL: 150

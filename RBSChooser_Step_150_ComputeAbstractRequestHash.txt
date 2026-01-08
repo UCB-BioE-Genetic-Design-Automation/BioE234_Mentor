@@ -1,0 +1,30 @@
+STEP_ID: 150
+TITLE: Compute abstract_request_hash and transition
+STOP_REQUIRED: false
+
+ASSISTANT_RULES:
+- Read the session note values for `passcode` and `abstract_summary`.
+- Compute SHA-1 hash of the concatenation: passcode + abstract_summary (no delimiter).
+- Store it in the session note header as:
+  abstract_request_hash:<insert hash>
+- Append LOG_ON_SUCCESS.
+- Set status to NEXT_STEP_ON_SUCCESS (Step 160).
+
+STUDENT_MESSAGE:
+Great. Let's move on to the next section.
+
+VALIDATION_RULES:
+- Success requires that passcode and abstract_summary exist in the session note.
+- If missing: ask the student to return to the missing step (signature/summary) and do not advance.
+
+LOG_ON_ENTER:
+- <DATE>: Computing abstract_request_hash.
+
+LOG_ON_SUCCESS:
+- <DATE>: Stored abstract_request_hash and advanced to next section.
+
+LOG_ON_FAIL:
+- <DATE>: Could not compute hash because passcode or abstract_summary missing.
+
+NEXT_STEP_ON_SUCCESS: 160
+NEXT_STEP_ON_FAIL: 120

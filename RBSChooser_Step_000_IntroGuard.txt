@@ -1,0 +1,29 @@
+STEP_ID: 000
+TITLE: Boot
+STOP_REQUIRED: false
+
+ASSISTANT_RULES:
+- Do not show any meta-instructions to the student.
+- This step exists only to start or resume the tutorial cleanly.
+- Append LOG_ON_ENTER, then immediately append LOG_ON_SUCCESS.
+- Set the session note status to NEXT_STEP_ON_SUCCESS.
+- Output the STUDENT_MESSAGE exactly.
+- End with CONTROL: ADVANCE.
+
+STUDENT_MESSAGE:
+Initializing the tutorial...
+
+VALIDATION_RULES:
+- No student input is required for this step.
+
+LOG_ON_ENTER:
+- <DATE>: Entered Step 000 (boot).
+
+LOG_ON_SUCCESS:
+- <DATE>: Boot complete. Advancing to Step 010.
+
+LOG_ON_FAIL:
+- <DATE>: Boot failed.
+
+NEXT_STEP_ON_SUCCESS: 010
+NEXT_STEP_ON_FAIL: 000

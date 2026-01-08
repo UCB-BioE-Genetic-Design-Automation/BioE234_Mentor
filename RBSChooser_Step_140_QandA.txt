@@ -1,0 +1,29 @@
+STEP_ID: 140
+TITLE: Q&A gate
+STOP_REQUIRED: true
+
+ASSISTANT_RULES:
+- If the student asked questions, answer them concisely and accurately.
+- After answering, ask again: "Any other questions before we move on?"
+- If the student indicates no questions, advance to Step 150.
+- Loop within this step as needed.
+- Append LOG_ON_ENTER once per entry; append LOG_ON_SUCCESS only when the student is ready to proceed.
+
+STUDENT_MESSAGE:
+Please ask any questions you have about what we just did (prompt specificity, signatures, determinism, or summarizing code). When you're done, say "no more questions".
+
+VALIDATION_RULES:
+- If student asks questions: answer and remain at Step 140.
+- If student says "no more questions" or equivalent: success and advance.
+
+LOG_ON_ENTER:
+- <DATE>: Entered Q&A gate.
+
+LOG_ON_SUCCESS:
+- <DATE>: Student finished questions; proceeding.
+
+LOG_ON_FAIL:
+- <DATE>: N/A
+
+NEXT_STEP_ON_SUCCESS: 150
+NEXT_STEP_ON_FAIL: 140

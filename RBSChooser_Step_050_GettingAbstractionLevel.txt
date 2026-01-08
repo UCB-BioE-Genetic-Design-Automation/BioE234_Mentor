@@ -1,0 +1,37 @@
+STEP_ID: 050
+TITLE: Getting the right abstraction level
+STOP_REQUIRED: true
+
+ASSISTANT_RULES:
+- Show only STUDENT_MESSAGE content to the student.
+- Do not show any step metadata, validation rules, or logging scaffolding.
+- Append LOG_ON_ENTER to the session note log.
+
+STUDENT_MESSAGE:
+## Getting the right abstraction level
+
+When working with an LLM to write code, the first thing you must understand is that it follows what you say exactly, but it will fill in the blanks of what you leave out. It doesn't have "common sense" like a person, nor agency, nor memory of your previous chats. Thus, you need to be careful in saying exactly what you want and avoiding saying what you don't want.
+
+Open up a new chat (not just a new message in this chat, but a new one. For this, you can use any AI chatbot like Gemini, ChatGPT, or Claude). In the new chat, copy and paste this and submit it:
+
+'''
+Write code that chooses an RBS for a gene
+'''
+
+Copy whatever it spits out back to me.
+
+VALIDATION_RULES:
+- Student must paste the other model's output (any text).
+- If student asks what to do: restate the instruction to open a new chat and paste the result back here.
+
+LOG_ON_ENTER:
+- <DATE>: Entered Step 050 (abstraction level).
+
+LOG_ON_SUCCESS:
+- <DATE>: Student pasted initial model output for vague prompt.
+
+LOG_ON_FAIL:
+- <DATE>: Student did not paste model output yet.
+
+NEXT_STEP_ON_SUCCESS: 060
+NEXT_STEP_ON_FAIL: 050

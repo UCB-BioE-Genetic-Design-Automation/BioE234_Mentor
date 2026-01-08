@@ -1,0 +1,22 @@
+STEP_ID: 030
+TITLE: Validate URL and Compute Introduction Hash
+STOP_REQUIRED: false
+
+STUDENT_MESSAGE:
+Thanks. I have stored your Colab URL.
+
+VALIDATION_RULES:
+- URL must match a Colab pattern, for example it contains "colab.research.google.com".
+- If invalid: explain what is wrong and ask them to resend a correct Colab URL.
+
+LOG_ON_ENTER:
+- <DATE>: Validating Colab URL.
+
+LOG_ON_SUCCESS:
+- <DATE>: Stored Colab URL and computed introduction hash.
+
+LOG_ON_FAIL:
+- <DATE>: Colab URL invalid.
+
+NEXT_STEP_ON_SUCCESS: 040
+NEXT_STEP_ON_FAIL: 020

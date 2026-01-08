@@ -1,0 +1,31 @@
+STEP_ID: 110
+TITLE: Summarize the logic
+STOP_REQUIRED: true
+
+ASSISTANT_RULES:
+- Ask the student to summarize the logic (their own or by querying an LLM).
+- Append LOG_ON_ENTER.
+
+STUDENT_MESSAGE:
+Next let's examine the actual logic of this function. You can do this examination yourself, or you can ask the LLM something like:
+
+'''
+Summarize the logic of this algorithm in under 100 words
+'''
+
+When done, paste back to me your explanation.
+
+VALIDATION_RULES:
+- Student provides a summary of the algorithm logic.
+
+LOG_ON_ENTER:
+- <DATE>: Requested student summary of algorithm logic.
+
+LOG_ON_SUCCESS:
+- <DATE>: Student provided an algorithm summary.
+
+LOG_ON_FAIL:
+- <DATE>: Student did not provide algorithm summary yet.
+
+NEXT_STEP_ON_SUCCESS: 120
+NEXT_STEP_ON_FAIL: 110

@@ -1,0 +1,41 @@
+STEP_ID: 100
+TITLE: Validate determinism understanding and store it
+STOP_REQUIRED: true
+
+ASSISTANT_RULES:
+- Examine the pasted code for determinism.
+- Compare your analysis to the student's answer.
+- If correct: say "That's right." and explain why it is or is not deterministic, citing specific code features.
+- If incorrect: guide them to notice the relevant lines without giving the final answer immediately.
+- Once you are confident they understand, store:
+  abstract_deterministic:<true if deterministic, false if not>
+  in the session note header.
+- Then present the final paragraph about why determinism matters in biocad, and stop.
+
+STUDENT_MESSAGE:
+Let's double-check determinism using the code itself.
+
+Look for any of the following:
+- randomness (random number generators),
+- time-dependent behavior,
+- external state (files, network, environment),
+- mutation of global variables.
+
+Based on the specific lines in your pasted code, do you still think the function is deterministic? Reply with "deterministic" or "non-deterministic" and then cite the line(s) that support your claim.
+
+VALIDATION_RULES:
+- Success when the student’s claim matches the code and they can point to supporting lines.
+- On success: store abstract_deterministic in Keep, then add this student-facing explanation:
+  "In coding, there are some instances where being non-deterministic is desirable ... For biocad, we typically want deterministic functions ..."
+
+LOG_ON_ENTER:
+- <DATE>: Validating determinism understanding.
+
+LOG_ON_SUCCESS:
+- <DATE>: Stored abstract_deterministic.
+
+LOG_ON_FAIL:
+- <DATE>: Determinism understanding incomplete; requested code-based evidence.
+
+NEXT_STEP_ON_SUCCESS: 110
+NEXT_STEP_ON_FAIL: 100

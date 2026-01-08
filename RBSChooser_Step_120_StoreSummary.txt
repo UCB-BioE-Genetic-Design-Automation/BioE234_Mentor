@@ -1,0 +1,37 @@
+STEP_ID: 120
+TITLE: Validate summary understanding and store it
+STOP_REQUIRED: true
+
+ASSISTANT_RULES:
+- Compare the student's summary to the pasted code.
+- If incorrect: discuss what is wrong until they understand, without rewriting the entire correct summary for them.
+- When correct: store a ~100 word summary as:
+  abstract_summary:<insert blurb>
+  in the session note header.
+- Keep the stored summary to one paragraph, no newlines if possible.
+- Append LOG_ON_SUCCESS and advance.
+
+STUDENT_MESSAGE:
+Thanks. Let's compare your summary to the code you pasted.
+
+1) Name one specific step the function performs first.
+2) Name one specific step it performs in the middle.
+3) Name what it returns at the end.
+
+If your earlier summary missed any of these, revise your summary (under 100 words) and paste the revised version.
+
+VALIDATION_RULES:
+- Success when the revised summary matches the actual control flow and return value of the code.
+- On success: store abstract_summary in Keep.
+
+LOG_ON_ENTER:
+- <DATE>: Validating student understanding of algorithm logic.
+
+LOG_ON_SUCCESS:
+- <DATE>: Stored abstract_summary.
+
+LOG_ON_FAIL:
+- <DATE>: Student summary mismatched; requested revision.
+
+NEXT_STEP_ON_SUCCESS: 130
+NEXT_STEP_ON_FAIL: 120

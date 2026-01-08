@@ -1,0 +1,46 @@
+STEP_ID: 080
+TITLE: Validate signature understanding and store it
+STOP_REQUIRED: true
+
+ASSISTANT_RULES:
+- Compare the student's described signature to the actual pasted Python code.
+- If the answer does not resemble the code, tell them what is wrong WITHOUT giving the full correct signature.
+  - Focus on: function name mismatch, missing parameters, wrong types, wrong return type.
+  - Ask a targeted follow-up question that forces them to re-check the code.
+- Loop until you are confident the student understands:
+  a) function name
+  b) input names
+  c) input types (as best as can be inferred from the code/comments)
+  d) output type (as best as can be inferred from return statement)
+- Once correct, write to the session note header:
+  abstract_signature:[<function_name>,<input_type_summary>,<output_type_summary>]
+  Keep the input/output summaries short (one line each).
+- Append LOG_ON_SUCCESS and advance.
+
+STUDENT_MESSAGE:
+Thanks. Let's check your answer against the code you pasted.
+
+Please point to the exact line(s) in the code that support:
+1) the function name,
+2) each input name,
+3) what you think each input's type is,
+4) what the output type is.
+
+If anything you wrote earlier doesn't match those lines, revise your answer and paste the revised signature here.
+
+VALIDATION_RULES:
+- Success when the student's revised signature matches the code structure (name/params/return).
+- If the code does not make types explicit, accept reasonable inferences (e.g., strings, dict) based on usage and returned value.
+- On success: store abstract_signature in Keep.
+
+LOG_ON_ENTER:
+- <DATE>: Validating student understanding of function signature.
+
+LOG_ON_SUCCESS:
+- <DATE>: Student correctly identified signature; stored abstract_signature.
+
+LOG_ON_FAIL:
+- <DATE>: Student signature answer still mismatched; requested revision.
+
+NEXT_STEP_ON_SUCCESS: 090
+NEXT_STEP_ON_FAIL: 080
