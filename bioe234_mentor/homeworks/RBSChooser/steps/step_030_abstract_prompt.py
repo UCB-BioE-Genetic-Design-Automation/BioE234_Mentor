@@ -18,7 +18,9 @@ def render(state) -> str:
             "I do not have your passcode on record, so I cannot continue.\n\n"
             "Go back and submit your passcode first using:\n\n"
             "```python\nmentor.submit_display(\"PASSCODE\", \"<your_passcode>\")\n```\n\n"
-            "Then run `mentor.display()` to return here."
+            "Then run:\n\n"
+            "```python\nmentor.display()\n```\n\n"
+            "to return here."
         )
 
     return (
@@ -26,7 +28,7 @@ def render(state) -> str:
         "In that new chat, type this exact prompt:\n\n"
         f"\"{_PROMPT}\"\n\n"
         "Gemini will respond with code. Copy the full Python function it gives you.\n\n"
-        "Back in this Colab notebook, submit the code as a string. Do not paste raw multi-line code directly into `mentor.submit_display(...)`.\n\n"
+        "Back in this Colab notebook, submit the code as a string. Do not paste raw multi-line code directly into mentor.submit_display(...).\n\n"
         "Use this pattern (paste the function between the triple quotes):\n\n"
         "```python\n"
         "rbs_code = r'''\n"
@@ -67,10 +69,10 @@ def validate(answer, state):
         return False, "You pasted the prompt. Paste the Python function code Gemini produced.", {}
 
     if len(s.strip()) < 150:
-        return False, "This looks too short. Paste the full function code (starting with `def ...`).", {"chars": len(s.strip())}
+        return False, "This looks too short. Paste the full function code (starting with def ...).", {"chars": len(s.strip())}
 
     if "def " not in s:
-        return False, "I did not see a Python function definition. Paste the code starting with `def ...`. ", {}
+        return False, "I did not see a Python function definition. Paste the code starting with def ....", {}
 
     try:
         tree = ast.parse(s)
@@ -79,7 +81,7 @@ def validate(answer, state):
 
     funcs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
     if not funcs:
-        return False, "I did not find any `def` function in what you pasted. Paste the full function code.", {}
+        return False, "I did not find any def function in what you pasted. Paste the full function code.", {}
 
     names = [f.name for f in funcs]
 

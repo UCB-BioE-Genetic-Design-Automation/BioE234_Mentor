@@ -7,7 +7,7 @@ NEXT_STEP = "030"
 HASH_MODE = "json"
 SUBMIT_STUB = 'mentor.submit_display("GEMINI_URL", "https://gemini.google.com/app/<id>")'
 
-_GEMINI_URL_RE = re.compile(r"^https://gemini\.google\.com/app/[0-9a-fA-F]{16,64}(?:[?#].*)?$")
+_GEMINI_URL_RE = re.compile(r"^https://gemini\.google\.com/app/[0-9a-zA-Z_-]{10,128}(?:[?#].*)?$")
 
 
 def render(state) -> str:
@@ -27,12 +27,12 @@ def render(state) -> str:
         "https://gemini.google.com/app\n\n"
         "2) Start a new chat (or open the chat you will use for this tutorial).\n\n"
         "3) Copy the URL from your browser address bar. It should look like:\n\n"
-        "https://gemini.google.com/app/###\n\n"
+        "https://gemini.google.com/app/8670b17b98648136\n\n"
         "Paste your Gemini chat URL here.\n\n"
-        "Also, share this Colab notebook with:\n"
-        "- jcanderson@berkeley.edu\n"
-        "- javadamn@berkeley.edu\n"
-        "(Read-only is fine: share with Viewer access.)"
+        "Also, share this Colab notebook (Viewer access is fine) with:\n"
+        "jcanderson@berkeley.edu\n"
+        "javadamn@berkeley.edu\n\n"
+        "Then come back here and paste your Gemini chat URL."
     )
 
 

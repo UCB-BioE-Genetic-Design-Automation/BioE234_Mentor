@@ -2,21 +2,15 @@ import json
 import re
 
 STEP_ID = "040"
-KEY = "RBSCHOOSER2_SIGNATURE"
+KEY = "ABSTRACT_SIGNATURE"
 TITLE = "Identify the function signature"
 NEXT_STEP = "050"
 HASH_MODE = "json"
 SUBMIT_STUB = (
-    "sig_yaml = r'''name: RBSChooser2\n"
-    "inputs:\n"
-    "  - name: dna\n"
-    "    type: string\n"
-    "    description: ...\n"
-    "output:\n"
-    "  type: string\n"
-    "  description: ...\n"
+    "sig_yaml = r'''\n"
+    "<insert YAML here>"
     "'''\n"
-    "mentor.submit_display(\"RBSCHOOSER2_SIGNATURE\", sig_yaml)"
+    "mentor.submit_display(\"ABSTRACT_SIGNATURE\", sig_yaml)"
 )
 
 
@@ -30,16 +24,7 @@ def render(state) -> str:
 
     gemini_prompt = (
         "What is the signature of the function we just wrote?\n"
-        "Explain it briefly, then express the signature as YAML with this shape:\n\n"
-        "name: <function name>\n"
-        "inputs:\n"
-        "  - name: <input name>\n"
-        "    type: <type or structure>\n"
-        "    description: <one sentence>\n"
-        "output:\n"
-        "  type: <type or structure>\n"
-        "  description: <one sentence>\n\n"
-        "Return ONLY YAML."
+        "Explain it briefly, then express the signature as YAML"
     )
 
     return (

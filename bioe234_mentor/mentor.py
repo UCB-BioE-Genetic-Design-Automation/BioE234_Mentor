@@ -222,7 +222,7 @@ class Mentor:
                 continue
 
             escaped = html.escape(line)
-            escaped = bold_rx.sub(r"<b>\\1</b>", escaped)
+            escaped = bold_rx.sub(r"<b>\1</b>", escaped)
             out.append("<div>" + escaped + "</div>")
 
         if in_code and code_lines:
@@ -248,13 +248,13 @@ class Mentor:
         code_id = f"mentor_code_{suffix}"
 
         title = html.escape(step.title)
-        body_html = html.escape(body).replace("\n", "<br>")
+        body_html = self._md_to_html(body)
         code_html = html.escape(snippet)
 
         block = (
             "<div style='font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; line-height:1.4;'>"
             "<div style='font-size:22px; font-weight:700; margin:0 0 10px 0; line-height:1.2;'>" + title + "</div>"
-            "<div style='font-size:15px; margin:0 0 14px 0;'>" + body_html + "</div>"
+            "<div style='margin:0 0 14px 0;'>" + body_html + "</div>"
             "<div style='display:flex; align-items:center; gap:10px; margin:0 0 6px 0;'>"
             "<div style='font-weight:700;'>Run:</div>"
             f"<button id='{btn_id}' style='padding:6px 10px; border:1px solid #ccc; border-radius:6px; background:#fff; cursor:pointer;'>Copy</button>"
