@@ -4,7 +4,7 @@ import re
 STEP_ID = "030"
 KEY = "RBSCHOOSER2_CODE"
 TITLE = "Ask Gemini for a first draft"
-NEXT_STEP = "DONE"
+NEXT_STEP = "040"
 HASH_MODE = "json"
 SUBMIT_STUB = "rbs_code = r'''<paste the full Python function here>'''\nmentor.submit_display(\"RBSCHOOSER2_CODE\", rbs_code)"
 
