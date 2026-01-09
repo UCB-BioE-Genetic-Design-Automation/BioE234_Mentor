@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 STEP_ID = "060"
@@ -12,7 +10,7 @@ PROMPT = (
     "A student team used choose_rbs to design an RBS upstream of GFP, but the colonies did not turn green.\n\n"
     "They used the result by concatenating it directly to the CDS, like this: rbs + cds.\n\n"
     "There is something fundamentally wrong with the logic, given that intended use.\n\n"
-    "Discuss choose_rbs and the rbs + cds result with Gemini, then choose the best explanation."
+    "Discuss choose_rbs and the rbs + cds result with Gemini, then choose the best explanation using the picker below."
 )
 
 VALID = [
@@ -50,55 +48,19 @@ SUBMIT_STUB = 'mentor.submit_display("CORRECTNESS_DIAGNOSIS", "' + VALID[0] + '"
 
 
 def render(state) -> str:
-    from bioe234_mentor.multiple_choice import make_quiz
+    return PROMPT
 
-    quiz = make_quiz(
-        prompt=PROMPT,
+
+def gui(state, mentor=None) -> None:
+    from bioe234_mentor.multiple_choice import display_mcq_widget
+
+    display_mcq_widget(
+        key=KEY,
         valid=VALID,
         invalid=INVALID,
+        prompt="### Multiple choice\n\nPick the best explanation, then click **Check**.",
         n_total=5,
         n_valid=1,
-    )
-
-    options = [o.text for o in quiz.options]
-
-    feedback = state.pop("last_incorrect_060", None)
-    feedback_block = ""
-    if isinstance(feedback, dict) and feedback.get("why"):
-        feedback_block = (
-            "\n\n---\n\n"
-            "### Feedback from your last attempt\n\n"
-            + str(feedback.get("why"))
-            + "\n"
-        )
-
-    gui_snippet = (
-        "from bioe234_mentor.multiple_choice import display_mcq_widget\n"
-        "from bioe234_mentor.homeworks.RBSChooser.steps import step_060_correctness as s\n\n"
-        "display_mcq_widget(\n"
-        "    key=s.KEY,\n"
-        "    valid=s.VALID,\n"
-        "    invalid=s.INVALID,\n"
-        "    prompt=s.PROMPT,\n"
-        ")\n"
-    )
-
-    lines = [f"{i}) {t}" for i, t in enumerate(options, start=1)]
-
-    return (
-        PROMPT
-        + "\n\n"
-        + "You can do this in either of two ways.\n\n"
-        + "1) Recommended: run the optional GUI picker below. It will reveal the exact submit call when you pick the correct explanation.\n\n"
-        + "```python\n"
-        + gui_snippet
-        + "```\n\n"
-        + "2) Manual: pick the best explanation from the list below and submit it exactly as written.\n\n"
-        + "Choices:\n\n"
-        + "\n\n".join(lines)
-        + "\n\n"
-        + "Submit the exact text of the best choice."
-        + feedback_block
     )
 
 
@@ -117,10 +79,6 @@ def validate(answer, state):
 
     for t, why in INVALID:
         if s == t:
-            state["last_incorrect_060"] = {"why": why}
             return False, why, {"chosen": s}
 
-    state["last_incorrect_060"] = {
-        "why": "I did not recognize that response. Please submit one of the choices exactly as written."
-    }
-    return False, "Unrecognized response.", {"chosen": s}
+    return False, "Please submit the exact text of the correct explanation.", {"chosen": s}

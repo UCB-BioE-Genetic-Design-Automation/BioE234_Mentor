@@ -21,6 +21,7 @@ class LoadedStep:
     title: str
     next_step: Optional[str]
     render: Any
+    gui: Optional[Any]
     shape_check: Any
     validate: Optional[Any]
     hash_mode: str
@@ -108,6 +109,7 @@ class Mentor:
         key = ns.get("KEY")
         title = ns.get("TITLE")
         render = ns.get("render")
+        gui = ns.get("gui")
         shape_check = ns.get("shape_check")
 
         if str(step_id_val) != str(step_id):
@@ -118,6 +120,8 @@ class Mentor:
             raise RuntimeError(f"Missing or invalid TITLE in {ref.path.name}")
         if not callable(render):
             raise RuntimeError(f"Missing render(state) in {ref.path.name}")
+        if gui is not None and not callable(gui):
+            raise RuntimeError(f"gui must be callable if present in {ref.path.name}")
         if not callable(shape_check):
             raise RuntimeError(f"Missing shape_check(answer) in {ref.path.name}")
 
@@ -143,6 +147,7 @@ class Mentor:
             title=title,
             next_step=next_step,
             render=render,
+            gui=gui,
             shape_check=shape_check,
             validate=validate,
             hash_mode=hash_mode,
@@ -156,6 +161,10 @@ class Mentor:
         step = self._load_step(self.current_step_id())
         body = str(step.render(self._state)).strip()
 
+        gui_hint = ""
+        if step.gui is not None:
+            gui_hint = "\n\n**Optional:**\n```python\nmentor.gui()\n```"
+
         if step.submit_stub:
             raw_snippet = step.submit_stub
         else:
@@ -165,7 +174,7 @@ class Mentor:
         if raw_snippet.lstrip().startswith("mentor.submit("):
             snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
 
-        return f"## {step.title}\n\n{body}\n\n**Submit:**\n```python\n{snippet}\n```"
+        return f"## {step.title}\n\n{body}{gui_hint}\n\n**Submit:**\n```python\n{snippet}\n```"
 
     def show_md(self):
         try:
@@ -299,6 +308,50 @@ class Mentor:
             print(self.show())
             return
         display(self.show_html())
+        try:
+            step = self._load_step(self.current_step_id())
+        except Exception:
+            return
+        if step.gui is not None:
+            self.gui()
+
+    def gui(self) -> None:
+        if self.is_finished():
+            return
+
+        step = self._load_step(self.current_step_id())
+        if step.gui is None:
+            try:
+                from IPython.display import display, Markdown
+            except Exception:
+                print("No GUI is available for this step.")
+                return
+            display(Markdown("No GUI is available for this step."))
+            return
+
+        try:
+            try:
+                result = step.gui(self._state, self)
+            except TypeError:
+                result = step.gui(self._state)
+        except Exception as e:
+            try:
+                from IPython.display import display, Markdown
+            except Exception:
+                print(f"GUI error: {e}")
+                return
+            display(Markdown(f"GUI error: {e}"))
+            return
+
+        if result is None:
+            return
+
+        try:
+            from IPython.display import display
+        except Exception:
+            print(str(result))
+            return
+        display(result)
 
     def submit_display(self, key: str, answer: Any) -> None:
         prev_step = self.current_step_id()

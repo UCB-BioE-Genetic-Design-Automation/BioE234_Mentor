@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, Union
 import random
 
 
@@ -48,7 +48,10 @@ def make_quiz(
 
     rng = random.Random(seed)
 
-    correct_texts = rng.sample(list(valid), k=min(n_valid, len(valid)))
+    if n_valid > len(valid):
+        raise ValueError("n_valid cannot exceed len(valid)")
+
+    correct_texts = rng.sample(list(valid), k=n_valid)
     wrong_pairs = rng.sample(list(invalid), k=n_total - n_valid)
 
     options: List[MCQOption] = []
@@ -139,8 +142,8 @@ def display_mcq_widget(
 
     why_map = quiz.why_map()
 
-    correct_text = next((o.text for o in quiz.options if o.is_correct), None)
-    if correct_text is None:
+    correct_texts = set(quiz.correct_texts())
+    if not correct_texts:
         raise RuntimeError("No correct option present")
 
     if submit_call_builder is None:
@@ -159,9 +162,9 @@ def display_mcq_widget(
         out.clear_output()
         with out:
             chosen_text = radio.value
-            if chosen_text == correct_text:
+            if chosen_text in correct_texts:
                 display(Markdown("**Correct.** Copy and paste this into a new code cell:"))
-                call = submit_call_builder(key, correct_text)
+                call = submit_call_builder(key, chosen_text)
                 display(Markdown("```python\n" + call + "\n```"))
             else:
                 why = why_map.get(chosen_text, "Not quite. Try again.")
