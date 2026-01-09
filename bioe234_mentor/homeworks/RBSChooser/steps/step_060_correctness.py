@@ -44,7 +44,7 @@ INVALID = [
     ),
 ]
 
-SUBMIT_STUB = 'mentor.submit_display("CORRECTNESS_DIAGNOSIS", "' + VALID[0] + '")'
+SUBMIT_STUB = 'mentor.submit_display("CORRECTNESS_DIAGNOSIS", "<paste the correct explanation here>")'
 
 
 def render(state) -> str:
