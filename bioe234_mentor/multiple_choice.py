@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Sequence, Tuple, Union
 import random
+import html
+import uuid
 
 
 @dataclass(frozen=True)
@@ -104,9 +106,9 @@ def render_quiz_markdown(quiz: MCQQuiz) -> str:
 def _try_import_widgets():
     try:
         import ipywidgets as widgets
-        from IPython.display import Markdown, display
+        from IPython.display import Markdown, HTML, display
 
-        return widgets, display, Markdown
+        return widgets, display, Markdown, HTML
     except Exception:
         return None
 
@@ -129,7 +131,7 @@ def display_mcq_widget(
             "Run this in Colab or install ipywidgets."
         )
 
-    widgets, display, Markdown = imported
+    widgets, display, Markdown, HTML = imported
 
     rng = random.Random(seed)
 
@@ -177,14 +179,42 @@ def display_mcq_widget(
     btn = widgets.Button(description="Check")
     out = widgets.Output()
 
+    def _copy_block(code: str) -> Any:
+        suffix = uuid.uuid4().hex[:10]
+        btn_id = f"mcq_copy_btn_{suffix}"
+        msg_id = f"mcq_copy_msg_{suffix}"
+        pre_id = f"mcq_copy_pre_{suffix}"
+        code_html = html.escape(code)
+        return HTML(
+            "<div style='display:flex; align-items:center; gap:10px; margin:8px 0 6px 0;'>"
+            "<div style='font-weight:700;'>Run:</div>"
+            f"<button id='{btn_id}' style='padding:6px 10px; border:1px solid #ccc; border-radius:6px; background:#fff; cursor:pointer;'>Copy</button>"
+            f"<span id='{msg_id}' style='font-size:13px; color:#555;'></span>"
+            "</div>"
+            f"<pre id='{pre_id}' style='margin:0; padding:10px; background:#f6f8fa; border:1px solid #ddd; border-radius:8px; overflow:auto; border-radius:8px;'><code>{code_html}</code></pre>"
+            "<script>(function(){"
+            f"var btn=document.getElementById('{btn_id}');"
+            f"var msg=document.getElementById('{msg_id}');"
+            f"var code=document.getElementById('{pre_id}').innerText;"
+            "function done(ok){msg.textContent=ok?'Copied.':'Copy failed.'; setTimeout(function(){msg.textContent='';},1200);}"
+            "btn.onclick=function(){"
+            "if(navigator && navigator.clipboard && navigator.clipboard.writeText){"
+            "navigator.clipboard.writeText(code).then(function(){done(true);}).catch(function(){done(false);});"
+            "}else{"
+            "try{var ta=document.createElement('textarea'); ta.value=code; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done(true);}catch(e){done(false);}"
+            "}" 
+            "};"
+            "})();</script>"
+        )
+
     def on_click(_):
         out.clear_output()
         with out:
             chosen_text = radio.value
             if chosen_text in correct_texts:
-                display(Markdown("**Correct.** Copy and paste this into a new code cell:"))
+                display(Markdown("**Correct.** Use the button to copy the line below into a new code cell:"))
                 call = submit_call_builder(key, chosen_text)
-                display(Markdown("```python\n" + call + "\n```"))
+                display(_copy_block(call))
             else:
                 why = why_map.get(chosen_text, "Not quite.")
                 display(Markdown("**Not quite.** " + why))
