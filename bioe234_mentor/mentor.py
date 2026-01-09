@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 import json
 import runpy
 import html
 import uuid
+
+import re
 
 from . import loaders
 from .util import now_iso, fingerprint_submission, stable_json
@@ -23,6 +25,23 @@ class LoadedStep:
     validate: Optional[Any]
     hash_mode: str
     submit_stub: Optional[str]
+
+
+@dataclass
+class MentorOutput:
+    text: str
+    html: Optional[str] = None
+
+    def __str__(self) -> str:
+        return self.text
+
+    def _repr_markdown_(self) -> str:
+        return self.text
+
+    def _repr_html_(self) -> str:
+        if self.html is not None:
+            return self.html
+        return f"<pre>{html.escape(self.text)}</pre>"
 
 
 class Mentor:
@@ -158,6 +177,59 @@ class Mentor:
     def _repr_markdown_(self) -> str:
         return self.show()
 
+    def _md_to_html(self, md: str) -> str:
+        s = md.strip("\n")
+        lines = s.splitlines()
+        out: list[str] = []
+        in_code = False
+        code_lines: list[str] = []
+
+        def flush_code() -> None:
+            nonlocal code_lines
+            code = "\n".join(code_lines)
+            out.append(
+                "<pre style='margin:10px 0; padding:10px; background:#f6f8fa; border:1px solid #ddd; border-radius:8px; overflow:auto;'><code>"
+                + html.escape(code)
+                + "</code></pre>"
+            )
+            code_lines = []
+
+        bold_rx = re.compile(r"\*\*(.+?)\*\*")
+
+        for line in lines:
+            if line.startswith("```"):
+                if in_code:
+                    in_code = False
+                    flush_code()
+                else:
+                    in_code = True
+                continue
+
+            if in_code:
+                code_lines.append(line)
+                continue
+
+            if line.startswith("## "):
+                out.append(
+                    "<div style='font-size:20px; font-weight:700; margin:12px 0 8px 0;'>"
+                    + html.escape(line[3:])
+                    + "</div>"
+                )
+                continue
+
+            if not line.strip():
+                out.append("<div style='height:8px;'></div>")
+                continue
+
+            escaped = html.escape(line)
+            escaped = bold_rx.sub(r"<b>\\1</b>", escaped)
+            out.append("<div>" + escaped + "</div>")
+
+        if in_code and code_lines:
+            flush_code()
+
+        return "<div style='font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; line-height:1.4; font-size:15px;'>" + "".join(out) + "</div>"
+
     def _html_block(self) -> str:
         if self.is_finished():
             return f"<pre>{html.escape(self.final_report())}</pre>"
@@ -241,14 +313,15 @@ class Mentor:
         try:
             from IPython.display import display, Markdown
         except Exception:
-            print(out)
+            print(str(out))
             return
 
-        display(Markdown(out))
+        display(Markdown(str(out)))
 
-    def submit(self, key: str, answer: Any) -> str:
+    def submit(self, key: str, answer: Any) -> MentorOutput:
         if self.is_finished():
-            return self.final_report()
+            rep = self.final_report()
+            return MentorOutput(text=rep, html=f"<pre>{html.escape(rep)}</pre>")
 
         step = self._load_step(self.current_step_id())
 
@@ -257,12 +330,13 @@ class Mentor:
             snippet = raw_snippet
             if raw_snippet.lstrip().startswith("mentor.submit("):
                 snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
-            return (
+            msg = (
                 "## Not quite\n\n"
                 f"You are currently on step **{step.step_id}** and I am expecting key **{step.key}**.\n\n"
                 "**Try:**\n"
                 f"```python\n{snippet}\n```"
             )
+            return MentorOutput(text=msg, html=self._md_to_html(msg))
 
         ok, reason = step.shape_check(answer)
         if not ok:
@@ -270,13 +344,14 @@ class Mentor:
             snippet = raw_snippet
             if raw_snippet.lstrip().startswith("mentor.submit("):
                 snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
-            return (
+            msg = (
                 "## Try again\n\n"
                 f"Your submission for **{step.key}** did not match the expected shape.\n\n"
                 f"**Issue:** {reason}\n\n"
                 "**Resubmit:**\n"
                 f"```python\n{snippet}\n```"
             )
+            return MentorOutput(text=msg, html=self._md_to_html(msg))
 
         summary: Dict[str, Any] = {}
         student_note = ""
@@ -287,13 +362,14 @@ class Mentor:
                 snippet = raw_snippet
                 if raw_snippet.lstrip().startswith("mentor.submit("):
                     snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
-                return (
+                msg = (
                     "## Try again\n\n"
                     f"I ran a check for **{step.key}** and it did not pass.\n\n"
                     f"**Issue:** {v_msg}\n\n"
                     "**Resubmit:**\n"
                     f"```python\n{snippet}\n```"
                 )
+                return MentorOutput(text=msg, html=self._md_to_html(msg))
             student_note = str(v_msg or "")
             if isinstance(v_summary, dict):
                 summary = v_summary
@@ -307,13 +383,14 @@ class Mentor:
             snippet = raw_snippet
             if raw_snippet.lstrip().startswith("mentor.submit("):
                 snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
-            return (
+            msg = (
                 "## Try again\n\n"
                 f"I expected a file path for **{step.key}**, but this file does not exist:\n\n"
                 f"`{e.args[0]}`\n\n"
                 "**Resubmit:**\n"
                 f"```python\n{snippet}\n```"
             )
+            return MentorOutput(text=msg, html=self._md_to_html(msg))
 
         stored_value: Any
         if step.hash_mode == "file":
@@ -354,9 +431,11 @@ class Mentor:
         self._save()
 
         if student_note:
-            return f"## Recorded\n\n{student_note.strip()}\n\n" + self.show()
+            text = f"## Recorded\n\n{student_note.strip()}\n\n" + self.show()
+        else:
+            text = self.show()
 
-        return self.show()
+        return MentorOutput(text=text, html=self._html_block())
 
     def _advance(self, step: LoadedStep) -> None:
         nxt = step.next_step
