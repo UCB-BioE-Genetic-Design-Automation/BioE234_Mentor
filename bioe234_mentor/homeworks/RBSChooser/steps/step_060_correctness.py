@@ -3,7 +3,7 @@
 STEP_ID = "060"
 KEY = "CORRECTNESS_DIAGNOSIS"
 TITLE = "Correctness"
-NEXT_STEP = "DONE"
+NEXT_STEP = "070"
 HASH_MODE = "json"
 
 SUBMIT_STUB = 'mentor.submit_display("CORRECTNESS_DIAGNOSIS", "missing_spacer")'

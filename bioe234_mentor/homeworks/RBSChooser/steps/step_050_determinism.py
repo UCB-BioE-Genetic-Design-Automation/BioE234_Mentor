@@ -1,7 +1,7 @@
 STEP_ID = "050"
 KEY = "IS_DETERMINISTIC"
 TITLE = "Determinism"
-NEXT_STEP = "DONE"
+NEXT_STEP = "060"
 HASH_MODE = "json"
 
 SUBMIT_STUB = (
