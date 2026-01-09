@@ -30,6 +30,9 @@ def render(state) -> str:
     return (
         "A function signature is the interface of a function: the function name, the inputs it accepts, and the output it returns.\n\n"
         "The important point: the signature is arbitrary. Gemini chose it. Different signatures imply different ways a user must call the function.\n\n"
+        "For a small one-off task, that might not matter. But as software grows, we break it into smaller functions so we can test each part and reuse it.\n\n"
+        "Those parts only fit together if the handoffs are clear: what one function passes to the next, and what it gets back. That is exactly what the signature defines.\n\n"
+        "In other words, signatures are where you set the boundaries of your program. You should not let an LLM invent them without checking whether they make sense for your goal.\n\n"
         "In the same Gemini chat where you generated your function, ask Gemini to describe the signature in a formal way.\n\n"
         "Copy and paste this prompt into Gemini:\n\n"
         "```text\n"
