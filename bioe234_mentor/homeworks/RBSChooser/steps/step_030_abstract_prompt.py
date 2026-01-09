@@ -27,10 +27,10 @@ def render(state) -> str:
         f"Open a new Gemini chat in your browser.\n\n"
         "In that new chat, type this exact prompt:\n\n"
 
+        f"```text\n{_PROMPT}\n```\n\n"
+        "Use the exact prompt above. Do not add extra details yet.\n\n"
+
         "Gemini will respond with code. Copy the full Python function it gives you.\n\n"
-        "```python\n"
-        "\"{_PROMPT}\""
-        "```\n\n"
 
         "Paste only the Python function code. Do not paste your prompt."
     )
