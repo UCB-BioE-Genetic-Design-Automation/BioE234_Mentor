@@ -14,33 +14,33 @@ PROMPT = (
 )
 
 VALID = [
-    "The algorithm returns only an SD motif and no spacer, so rbs + cds cannot place the SD at a meaningful distance from the start codon.",
-    "The output is just an SD sequence. Without a spacer, concatenating rbs + cds gives the wrong SD to start geometry.",
-    "It picks an SD motif but never builds the spacer, so the SD is not positioned relative to the start codon in rbs + cds.",
-    "Returning only an SD motif is not enough. The design needs SD plus spacer so assembly places the SD about 5 to 6 nt upstream of the start.",
-    "The algorithm does not create the region between the SD and the start codon, so rbs + cds yields no defined SD to start spacing.",
+    "choose_rbs returns only a Shine-Dalgarno motif, not the spacer between the SD and the start codon, so rbs + cds has no defined initiation geometry.",
+    "The output is just an SD sequence. Without an explicit spacer, concatenating rbs + cds leaves the SD at the wrong distance from the start codon.",
+    "It selects an SD motif but never positions it relative to the start codon; the missing spacer means rbs + cds cannot encode aligned SD-to-start spacing.",
+    "An RBS design must include SD plus a spacer region. Returning only the motif omits the key distance constraint needed for initiation when assembled as rbs + cds.",
+    "The algorithm never constructs the SD-to-start interval, so the returned 'rbs' is incomplete; rbs + cds produces undefined spacing and poor initiation.",
 ]
 
 INVALID = [
     (
-        "It uses randomness, so you might get different motifs across runs.",
-        "True, but randomness is not the fundamental correctness issue in the rbs + cds assembly. Even a fixed SD only output would still be structurally incompatible with the intended use.",
+        "Because choose_rbs uses randomness, two runs may yield different sequences, which can confuse debugging and reproducibility of GFP expression results.",
+        "True, but randomness is not the fundamental correctness issue in the rbs + cds assembly. Even a fixed SD-only output would still be structurally incompatible with the intended use.",
     ),
     (
-        "The function takes cds but does not use it, so the output is wrong.",
+        "The function accepts cds but does not use it, so it cannot account for downstream context effects and will output an RBS that is incompatible with GFP specifically.",
         "Not using cds is a design smell, but it is not the core failure in the rbs + cds assembly. The basic issue is that the output omits the spacer needed to position the SD relative to the start codon.",
     ),
     (
-        "AGGAGG is not the right Shine Dalgarno sequence, so translation will fail.",
-        "AGGAGG is a common SD like motif in E. coli examples. The issue here is not the exact letters, it is that the algorithm returns only the motif and omits the spacer needed for initiation geometry.",
+        "AGGAGG is not the correct Shine-Dalgarno sequence for E. coli, so the ribosome will not bind effectively and translation initiation will fail regardless of spacing.",
+        "AGGAGG is a common SD-like motif in E. coli examples. The issue here is not the exact letters; it is that the algorithm returns only the motif and omits the spacer needed for initiation geometry.",
     ),
     (
-        "The plasmid copy number was too low, so GFP did not express.",
-        "Copy number affects expression level, but it does not explain a systematic failure of an RBS design algorithm. The failure here is that the algorithm output is not structurally compatible with rbs + cds.",
+        "The GFP construct likely failed due to promoter strength or plasmid copy number; the RBS algorithm could be fine but expression is too low to see.",
+        "Copy number and promoter strength affect expression level, but they do not explain a systematic failure of an RBS design algorithm. The failure here is that the algorithm output is not structurally compatible with rbs + cds.",
     ),
     (
-        "mRNA secondary structure might hide the SD, so it does not express.",
-        "Secondary structure can matter, but you do not even get to that level yet. The algorithm output lacks basic geometry for initiation because it returns only an SD motif and no spacer.",
+        "Secondary structure in the 5' UTR could hide the SD and prevent binding; the algorithm needs folding analysis, not changes to how it builds the RBS.",
+        "Secondary structure can matter, but you do not even get to that level yet. The algorithm output lacks basic initiation geometry because it returns only an SD motif and no spacer.",
     ),
 ]
 

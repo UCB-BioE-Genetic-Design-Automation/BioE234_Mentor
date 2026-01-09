@@ -131,20 +131,39 @@ def display_mcq_widget(
 
     widgets, display, Markdown = imported
 
+    rng = random.Random(seed)
+
     quiz = make_quiz(
         prompt=prompt,
         valid=valid,
         invalid=invalid,
         n_total=n_total,
         n_valid=n_valid,
-        seed=seed,
+        seed=rng.randrange(2**32),
     )
 
     why_map = quiz.why_map()
-
     correct_texts = set(quiz.correct_texts())
     if not correct_texts:
         raise RuntimeError("No correct option present")
+
+    def _resample_quiz() -> None:
+        nonlocal quiz, why_map, correct_texts
+        quiz = make_quiz(
+            prompt=prompt,
+            valid=valid,
+            invalid=invalid,
+            n_total=n_total,
+            n_valid=n_valid,
+            seed=rng.randrange(2**32),
+        )
+        why_map = quiz.why_map()
+        correct_texts = set(quiz.correct_texts())
+        if not correct_texts:
+            raise RuntimeError("No correct option present")
+        new_opts = [o.text for o in quiz.options]
+        radio.options = new_opts
+        radio.value = new_opts[0] if new_opts else None
 
     if submit_call_builder is None:
         def submit_call_builder(k: str, v: str) -> str:
@@ -167,9 +186,10 @@ def display_mcq_widget(
                 call = submit_call_builder(key, chosen_text)
                 display(Markdown("```python\n" + call + "\n```"))
             else:
-                why = why_map.get(chosen_text, "Not quite. Try again.")
+                why = why_map.get(chosen_text, "Not quite.")
                 display(Markdown("**Not quite.** " + why))
-                display(Markdown("Choose a different option and click **Check** again."))
+                display(Markdown("Generating a new set of choices. Try again."))
+                _resample_quiz()
 
     btn.on_click(on_click)
 
