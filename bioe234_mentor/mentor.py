@@ -139,6 +139,8 @@ class Mentor:
 
         submit_stub = ns.get("SUBMIT_STUB")
         if submit_stub is not None and not isinstance(submit_stub, str):
+            raise RuntimeError(f"SUBMIT_STUB must be a string or None in {ref.path.name}")
+        if isinstance(submit_stub, str) and not submit_stub.strip():
             submit_stub = None
 
         return LoadedStep(
@@ -154,6 +156,23 @@ class Mentor:
             submit_stub=submit_stub,
         )
 
+    def _submit_snippet(self, step: LoadedStep) -> Optional[str]:
+        raw = step.submit_stub
+        if raw is None:
+            return None
+        s = str(raw).strip()
+        if not s:
+            return None
+        if s.lstrip().startswith("mentor.submit("):
+            s = s.replace("mentor.submit(", "mentor.submit_display(", 1)
+        return s
+
+    def _submit_block_md(self, step: LoadedStep, label: str) -> str:
+        snippet = self._submit_snippet(step)
+        if snippet is None:
+            return ""
+        return f"\n\n{label}\n```python\n{snippet}\n```"
+
     def show(self) -> str:
         if self.is_finished():
             return self.final_report()
@@ -165,16 +184,12 @@ class Mentor:
         if step.gui is not None:
             gui_hint = "\n\n**Optional:**\n```python\nmentor.gui()\n```"
 
-        if step.submit_stub:
-            raw_snippet = step.submit_stub
-        else:
-            raw_snippet = f'mentor.submit_display("{step.key}", <your_answer_here>)'
+        submit_block = ""
+        snippet = self._submit_snippet(step)
+        if snippet is not None:
+            submit_block = "\n\n**Submit:**\n```python\n" + snippet + "\n```"
 
-        snippet = raw_snippet
-        if raw_snippet.lstrip().startswith("mentor.submit("):
-            snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
-
-        return f"## {step.title}\n\n{body}{gui_hint}\n\n**Submit:**\n```python\n{snippet}\n```"
+        return f"## {step.title}\n\n{body}{gui_hint}{submit_block}"
 
     def show_md(self):
         try:
@@ -245,10 +260,7 @@ class Mentor:
 
         step = self._load_step(self.current_step_id())
         body = str(step.render(self._state)).strip()
-        raw_snippet = step.submit_stub or f'mentor.submit_display("{step.key}", <your_answer_here>)'
-        snippet = raw_snippet
-        if raw_snippet.lstrip().startswith("mentor.submit("):
-            snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
+        snippet = self._submit_snippet(step)
 
         self.__class__._display_seq += 1
         suffix = f"{self.__class__._display_seq}_{uuid.uuid4().hex[:8]}"
@@ -258,35 +270,41 @@ class Mentor:
 
         title = html.escape(step.title)
         body_html = self._md_to_html(body)
-        code_html = html.escape(snippet)
+        code_html = html.escape(snippet or "")
+
+        run_block = ""
+        if snippet is not None:
+            run_block = (
+                "<div style='display:flex; align-items:center; gap:10px; margin:0 0 6px 0;'>"
+                "<div style='font-weight:700;'>Run:</div>"
+                f"<button id='{btn_id}' style='padding:6px 10px; border:1px solid #ccc; border-radius:6px; background:#fff; cursor:pointer;'>Copy</button>"
+                f"<span id='{msg_id}' style='font-size:13px; color:#555;'></span>"
+                "</div>"
+                f"<pre id='{code_id}' style='margin:0; padding:10px; background:#f6f8fa; border:1px solid #ddd; border-radius:8px; overflow:auto;'>"
+                "<code>" + code_html + "</code></pre>"
+                "<script>"
+                "(function(){"
+                f"var btn=document.getElementById('{btn_id}');"
+                f"var msg=document.getElementById('{msg_id}');"
+                f"var code=document.getElementById('{code_id}').innerText;"
+                "function done(ok){msg.textContent=ok?'Copied.':'Copy failed.'; setTimeout(function(){msg.textContent='';},1200);}"
+                "btn.onclick=function(){"
+                "if(navigator && navigator.clipboard && navigator.clipboard.writeText){"
+                "navigator.clipboard.writeText(code).then(function(){done(true);}).catch(function(){done(false);});"
+                "}else{"
+                "try{var ta=document.createElement('textarea'); ta.value=code; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done(true);}catch(e){done(false);}"
+                "}"
+                "};"
+                "})();"
+                "</script>"
+            )
 
         block = (
             "<div style='font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; line-height:1.4;'>"
             "<div style='font-size:22px; font-weight:700; margin:0 0 10px 0; line-height:1.2;'>" + title + "</div>"
             "<div style='margin:0 0 14px 0;'>" + body_html + "</div>"
-            "<div style='display:flex; align-items:center; gap:10px; margin:0 0 6px 0;'>"
-            "<div style='font-weight:700;'>Run:</div>"
-            f"<button id='{btn_id}' style='padding:6px 10px; border:1px solid #ccc; border-radius:6px; background:#fff; cursor:pointer;'>Copy</button>"
-            f"<span id='{msg_id}' style='font-size:13px; color:#555;'></span>"
-            "</div>"
-            f"<pre id='{code_id}' style='margin:0; padding:10px; background:#f6f8fa; border:1px solid #ddd; border-radius:8px; overflow:auto;'>"
-            "<code>" + code_html + "</code></pre>"
-            "<script>"
-            "(function(){"
-            f"var btn=document.getElementById('{btn_id}');"
-            f"var msg=document.getElementById('{msg_id}');"
-            f"var code=document.getElementById('{code_id}').innerText;"
-            "function done(ok){msg.textContent=ok?'Copied.':'Copy failed.'; setTimeout(function(){msg.textContent='';},1200);}"
-            "btn.onclick=function(){"
-            "if(navigator && navigator.clipboard && navigator.clipboard.writeText){"
-            "navigator.clipboard.writeText(code).then(function(){done(true);}).catch(function(){done(false);});"
-            "}else{"
-            "try{var ta=document.createElement('textarea'); ta.value=code; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done(true);}catch(e){done(false);}"
-            "}"
-            "};"
-            "})();"
-            "</script>"
-            "</div>"
+            + run_block
+            + "</div>"
         )
 
         return block
@@ -379,30 +397,20 @@ class Mentor:
         step = self._load_step(self.current_step_id())
 
         if key != step.key:
-            raw_snippet = step.submit_stub or f'mentor.submit_display("{step.key}", <your_answer_here>)'
-            snippet = raw_snippet
-            if raw_snippet.lstrip().startswith("mentor.submit("):
-                snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
             msg = (
                 "## Not quite\n\n"
-                f"You are currently on step **{step.step_id}** and I am expecting key **{step.key}**.\n\n"
-                "**Try:**\n"
-                f"```python\n{snippet}\n```"
+                f"You are currently on step **{step.step_id}** and I am expecting key **{step.key}**."
+                + self._submit_block_md(step, "**Try:**")
             )
             return MentorOutput(text=msg, html=self._md_to_html(msg))
 
         ok, reason = step.shape_check(answer)
         if not ok:
-            raw_snippet = step.submit_stub or f'mentor.submit_display("{step.key}", <your_answer_here>)'
-            snippet = raw_snippet
-            if raw_snippet.lstrip().startswith("mentor.submit("):
-                snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
             msg = (
                 "## Try again\n\n"
                 f"Your submission for **{step.key}** did not match the expected shape.\n\n"
-                f"**Issue:** {reason}\n\n"
-                "**Resubmit:**\n"
-                f"```python\n{snippet}\n```"
+                f"**Issue:** {reason}"
+                + self._submit_block_md(step, "**Resubmit:**")
             )
             return MentorOutput(text=msg, html=self._md_to_html(msg))
 
@@ -411,16 +419,11 @@ class Mentor:
         if step.validate is not None:
             v_ok, v_msg, v_summary = step.validate(answer, self._state)
             if not v_ok:
-                raw_snippet = step.submit_stub or f'mentor.submit_display("{step.key}", <your_answer_here>)'
-                snippet = raw_snippet
-                if raw_snippet.lstrip().startswith("mentor.submit("):
-                    snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
                 msg = (
                     "## Try again\n\n"
                     f"I ran a check for **{step.key}** and it did not pass.\n\n"
-                    f"**Issue:** {v_msg}\n\n"
-                    "**Resubmit:**\n"
-                    f"```python\n{snippet}\n```"
+                    f"**Issue:** {v_msg}"
+                    + self._submit_block_md(step, "**Resubmit:**")
                 )
                 return MentorOutput(text=msg, html=self._md_to_html(msg))
             student_note = str(v_msg or "")
@@ -432,16 +435,11 @@ class Mentor:
         try:
             sha1, meta = fingerprint_submission(answer, step.hash_mode)
         except FileNotFoundError as e:
-            raw_snippet = step.submit_stub or f'mentor.submit_display("{step.key}", <your_answer_here>)'
-            snippet = raw_snippet
-            if raw_snippet.lstrip().startswith("mentor.submit("):
-                snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
             msg = (
                 "## Try again\n\n"
                 f"I expected a file path for **{step.key}**, but this file does not exist:\n\n"
-                f"`{e.args[0]}`\n\n"
-                "**Resubmit:**\n"
-                f"```python\n{snippet}\n```"
+                f"`{e.args[0]}`"
+                + self._submit_block_md(step, "**Resubmit:**")
             )
             return MentorOutput(text=msg, html=self._md_to_html(msg))
 
