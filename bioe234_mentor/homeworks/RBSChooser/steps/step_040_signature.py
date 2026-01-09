@@ -7,14 +7,16 @@ TITLE = "Identify the function signature"
 NEXT_STEP = "050"
 HASH_MODE = "json"
 SUBMIT_STUB = (
-    "sig_json = r'''{\n"
-    "  \"name\": \"RBSChooser2\",\n"
-    "  \"inputs\": [\n"
-    "    {\"name\": \"dna\", \"type\": \"string\", \"description\": \"...\"}\n"
-    "  ],\n"
-    "  \"output\": {\"type\": \"string\", \"description\": \"...\"}\n"
-    "}'''\n"
-    "mentor.submit_display(\"RBSCHOOSER2_SIGNATURE\", sig_json)"
+    "sig_yaml = r'''name: RBSChooser2\n"
+    "inputs:\n"
+    "  - name: dna\n"
+    "    type: string\n"
+    "    description: ...\n"
+    "output:\n"
+    "  type: string\n"
+    "  description: ...\n"
+    "'''\n"
+    "mentor.submit_display(\"RBSCHOOSER2_SIGNATURE\", sig_yaml)"
 )
 
 
@@ -26,38 +28,30 @@ def render(state) -> str:
             "Go back and submit your draft function code first. Then run `mentor.display()` to return here."
         )
 
-    lines = code.splitlines()
-    preview = "\n".join(lines[:25])
-    if len(lines) > 25:
-        preview += "\n..."
-
-    prompt = (
-        "You are looking at a function signature. A signature is the interface of a function: \n"
-        "- the function name\n"
-        "- the inputs it accepts (names and expected types/structure)\n"
-        "- the output it returns (type/structure)\n\n"
-        "The important point: the signature is arbitrary. Gemini chose it. Different choices imply different ways a user must call the function.\n\n"
-        "Ask yourself: Did it ask for a DNA string? A numeric strength? A list of sequences?\n"
-        "What does it return: a string, a number, a dict/object, or a more complex structure?\n\n"
-        "In Gemini, ask for the signature and request a formal JSON description you can submit.\n\n"
-        "Use this prompt in Gemini (paste your function code where indicated):\n\n"
-        "---\n"
-        "Given the following Python function, identify its signature (name, inputs, output).\n"
-        "Return ONLY a JSON object with this shape:\n"
-        "{\n"
-        "  \"name\": <string>,\n"
-        "  \"inputs\": [ {\"name\": <string>, \"type\": <string>, \"description\": <string>} , ... ],\n"
-        "  \"output\": {\"type\": <string>, \"description\": <string>}\n"
-        "}\n\n"
-        "Function code:\n"
-        "```python\n"
-        + preview
-        + "\n```\n"
-        "---\n\n"
-        "Then paste the JSON you get back here and submit it."
+    gemini_prompt = (
+        "What is the signature of the function we just wrote?\n"
+        "Explain it briefly, then express the signature as YAML with this shape:\n\n"
+        "name: <function name>\n"
+        "inputs:\n"
+        "  - name: <input name>\n"
+        "    type: <type or structure>\n"
+        "    description: <one sentence>\n"
+        "output:\n"
+        "  type: <type or structure>\n"
+        "  description: <one sentence>\n\n"
+        "Return ONLY YAML."
     )
 
-    return prompt
+    return (
+        "A function signature is the interface of a function: the function name, the inputs it accepts, and the output it returns.\n\n"
+        "The important point: the signature is arbitrary. Gemini chose it. Different signatures imply different ways a user must call the function.\n\n"
+        "In the same Gemini chat where you generated your function, ask Gemini to describe the signature in a formal way.\n\n"
+        "Copy and paste this prompt into Gemini:\n\n"
+        "```text\n"
+        + gemini_prompt
+        + "\n```\n\n"
+        "Then paste the YAML Gemini returns here and submit it."
+    )
 
 
 def shape_check(answer):
@@ -84,39 +78,36 @@ def validate(answer, state):
     if not code:
         return False, "Draft code is missing. Go back and submit the function code first.", {}
 
-    obj = None
-
     if isinstance(answer, dict):
-        obj = answer
-    else:
-        s = _strip_code_fences(str(answer))
-        if len(s) < 20:
-            return False, "This looks too short to be a meaningful signature. Paste the full JSON object.", {"chars": len(s)}
-        try:
-            obj = json.loads(s)
-        except Exception:
-            return False, "I could not parse this as JSON. Paste the JSON object Gemini returned.", {}
+        return False, "Submit YAML text (not a Python dict). Paste the YAML Gemini returned.", {}
 
-    if not isinstance(obj, dict):
-        return False, "Parsed value was not a JSON object. Paste a JSON object with keys name, inputs, output.", {}
+    s = _strip_code_fences(str(answer))
+    if len(s.strip()) < 40:
+        return False, "This looks too short to be a meaningful signature. Paste the full YAML block.", {"chars": len(s.strip())}
 
-    for k in ["name", "inputs", "output"]:
-        if k not in obj:
-            return False, f"Missing required key: {k}", {}
-
-    if not isinstance(obj.get("name"), str) or not obj["name"].strip():
-        return False, "`name` must be a non-empty string.", {}
-
-    if not isinstance(obj.get("inputs"), list) or len(obj["inputs"]) < 1:
-        return False, "`inputs` must be a non-empty list.", {}
-
-    if not isinstance(obj.get("output"), dict):
-        return False, "`output` must be an object with at least a type and description.", {}
-
-    state["rbschooser2_signature"] = obj
-
-    return True, "Signature recorded.", {
-        "name": obj.get("name"),
-        "n_inputs": len(obj.get("inputs", [])) if isinstance(obj.get("inputs"), list) else 0,
-        "output_keys": sorted(list(obj.get("output", {}).keys())) if isinstance(obj.get("output"), dict) else [],
-    }
+    try:
+        import yaml
+        obj = yaml.safe_load(s)
+        if not isinstance(obj, dict):
+            return False, "YAML did not parse as an object. Paste the YAML block Gemini returned.", {}
+        for k in ["name", "inputs", "output"]:
+            if k not in obj:
+                return False, f"Missing required key: {k}", {}
+        if not isinstance(obj.get("name"), str) or not obj["name"].strip():
+            return False, "`name` must be a non-empty string.", {}
+        if not isinstance(obj.get("inputs"), list) or len(obj["inputs"]) < 1:
+            return False, "`inputs` must be a non-empty list.", {}
+        if not isinstance(obj.get("output"), dict):
+            return False, "`output` must be an object with at least type and description.", {}
+        state["rbschooser2_signature"] = obj
+        return True, "Signature recorded.", {
+            "name": obj.get("name"),
+            "n_inputs": len(obj.get("inputs", [])) if isinstance(obj.get("inputs"), list) else 0,
+            "output_keys": sorted(list(obj.get("output", {}).keys())) if isinstance(obj.get("output"), dict) else [],
+        }
+    except Exception:
+        lower = s.lower()
+        if "name:" not in lower or "inputs:" not in lower or "output:" not in lower:
+            return False, "I did not see the required YAML keys (name, inputs, output). Paste the YAML Gemini returned.", {}
+        state["rbschooser2_signature_yaml"] = s
+        return True, "Signature recorded.", {"chars": len(s)}
