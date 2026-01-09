@@ -27,7 +27,7 @@ def render(state) -> str:
         "https://gemini.google.com/app\n\n"
         "2) Start a new chat (or open the chat you will use for this tutorial).\n\n"
         "3) Copy the URL from your browser address bar. It should look like:\n\n"
-        "https://gemini.google.com/app/8670b17b98648136\n\n"
+        "https://gemini.google.com/app/###\n\n"
         "Paste your Gemini chat URL here.\n\n"
         "Also, share this Colab notebook with:\n"
         "- jcanderson@berkeley.edu\n"

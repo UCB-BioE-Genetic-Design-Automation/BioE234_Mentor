@@ -6,7 +6,7 @@ KEY = "RBSCHOOSER2_CODE"
 TITLE = "Ask Gemini for a first draft"
 NEXT_STEP = "DONE"
 HASH_MODE = "json"
-SUBMIT_STUB = "rbs_code = r'''<paste the full Python function here>'''\nmentor.submit_display(\"RBSCHOOSER2_CODE\", rbs_code)"
+SUBMIT_STUB = 'mentor.submit_display("RBSCHOOSER2_CODE", """<paste the full Python function here>""")'
 
 _PROMPT = "Write a function to choose an RBS for a gene"
 
@@ -22,19 +22,10 @@ def render(state) -> str:
         )
 
     return (
-        "Open a new Gemini chat in your browser.\n\n"
         "In that new chat, type this exact prompt:\n\n"
         f"\"{_PROMPT}\"\n\n"
-        "Gemini will respond with code. Copy the full Python function it gives you.\n\n"
-        "Back in this Colab notebook, submit the code as a string. Do not paste raw multi-line code directly into `mentor.submit_display(...)`.\n\n"
-        "Use this pattern (paste the function between the triple quotes):\n\n"
-        "```python\n"
-        "rbs_code = r'''\n"
-        "<paste the full Python function here>\n"
-        "'''\n"
-        "mentor.submit_display(\"RBSCHOOSER2_CODE\", rbs_code)\n"
-        "```\n\n"
-        "Paste only the Python function code. Do not paste your prompt."
+        "Gemini will respond with code. Copy the full Python function it gives you and paste it here.\n\n"
+        "Paste only the Python function code. Do not paste your prompt.\n"
     )
 
 
