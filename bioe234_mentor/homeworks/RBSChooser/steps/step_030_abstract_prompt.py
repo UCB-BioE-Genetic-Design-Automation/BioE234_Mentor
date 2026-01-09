@@ -24,18 +24,14 @@ def render(state) -> str:
         )
 
     return (
-        "Open a new Gemini chat in your browser.\n\n"
+        f"Open a new Gemini chat in your browser.\n\n"
         "In that new chat, type this exact prompt:\n\n"
-        f"\"{_PROMPT}\"\n\n"
+
         "Gemini will respond with code. Copy the full Python function it gives you.\n\n"
-        "Back in this Colab notebook, submit the code as a string. Do not paste raw multi-line code directly into mentor.submit_display(...).\n\n"
-        "Use this pattern (paste the function between the triple quotes):\n\n"
         "```python\n"
-        "rbs_code = r'''\n"
-        "<paste the full Python function here>\n"
-        "'''\n"
-        "mentor.submit_display(\"RBSCHOOSER2_CODE\", rbs_code)\n"
+        "\"{_PROMPT}\""
         "```\n\n"
+
         "Paste only the Python function code. Do not paste your prompt."
     )
 
