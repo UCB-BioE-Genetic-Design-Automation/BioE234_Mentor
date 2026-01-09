@@ -160,7 +160,10 @@ class Mentor:
 
         step = self._load_step(self.current_step_id())
         body = str(step.render(self._state)).strip()
-        snippet = step.submit_stub or f'mentor.submit("{step.key}", <your_answer_here>)'
+        raw_snippet = step.submit_stub or f'mentor.submit_display("{step.key}", <your_answer_here>)'
+        snippet = raw_snippet
+        if raw_snippet.lstrip().startswith("mentor.submit("):
+            snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
 
         self.__class__._display_seq += 1
         suffix = f"{self.__class__._display_seq}_{uuid.uuid4().hex[:8]}"
@@ -222,8 +225,22 @@ class Mentor:
         display(self.show_html())
 
     def submit_display(self, key: str, answer: Any) -> None:
-        self.submit(key, answer)
-        self.display()
+        prev_step = self.current_step_id()
+        out = self.submit(key, answer)
+
+        advanced = (self.current_step_id() != prev_step) or self.is_finished()
+
+        if advanced:
+            self.display()
+            return
+
+        try:
+            from IPython.display import display, Markdown
+        except Exception:
+            print(out)
+            return
+
+        display(Markdown(out))
 
     def submit(self, key: str, answer: Any) -> str:
         if self.is_finished():

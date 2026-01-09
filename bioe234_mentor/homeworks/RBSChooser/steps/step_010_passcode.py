@@ -58,7 +58,7 @@ def debug_info() -> dict:
 
 STEP_ID = "010"
 KEY = "PASSCODE"
-TITLE = "Passcode entry"
+TITLE = "Welcome to the RBSChooser tutorial"
 NEXT_STEP = "020"
 HASH_MODE = "json"
 SUBMIT_STUB = 'mentor.submit("PASSCODE", "<your_passcode>")'
@@ -66,9 +66,10 @@ SUBMIT_STUB = 'mentor.submit("PASSCODE", "<your_passcode>")'
 
 def render(state) -> str:
     return (
-        "Welcome to the RBSChooser tutorial.\n\n"
-        "I will ask you to do one task at a time. For each task, I will show you exactly what to run in the next code block using `mentor.submit(KEY, answer)`. You run it, and I will show you the next step.\n\n"
-        "To start, what is your passcode? You should have received it by email. If you did not receive it, contact your instructor.\n\n"
+        "In this tutorial, you will build a function called **RBSChooser2** with help from an LLM.\n\n"
+        "This notebook runs one step at a time. Each step tells you what to run next using `mentor.submit(KEY, answer)`.\n"
+        "Run the line shown, and I will show you the next step.\n\n"
+        "To start, enter your passcode. You should have received it by email. If you did not receive it, contact your instructor.\n\n"
         "Paste only the passcode. It must be a single word with letters only."
     )
 
