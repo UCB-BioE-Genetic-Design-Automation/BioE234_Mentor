@@ -1,5 +1,6 @@
 from pathlib import Path
 import hashlib
+import importlib.resources as ir
 
 _ALLOWED_SHA1: set[str] | None = None
 _ALLOWED_SHA1_PATH: Path | None = None
@@ -11,28 +12,33 @@ def _load_allowed_sha1() -> set[str]:
     if _ALLOWED_SHA1 is not None:
         return _ALLOWED_SHA1
 
-    candidates = [
-        Path(__file__).resolve().parent.parent / "fixtures" / "sha1_whitelist.csv",
-        Path(__file__).resolve().parents[4] / "sha1_whitelist.csv",
-    ]
+    text: str | None = None
 
-    path: Path | None = None
-    for p in candidates:
-        if p.exists() and p.is_file():
-            path = p
-            break
-
-    _ALLOWED_SHA1_PATH = path
-
-    if path is None:
-        _ALLOWED_SHA1_PATH = None
-        _ALLOWED_SHA1 = set()
-        return _ALLOWED_SHA1
+    try:
+        text = (
+            ir.files("bioe234_mentor.homeworks.RBSChooser.fixtures")
+            .joinpath("sha1_whitelist.csv")
+            .read_text(encoding="utf-8")
+        )
+        _ALLOWED_SHA1_PATH = Path(
+            "package:bioe234_mentor/homeworks/RBSChooser/fixtures/sha1_whitelist.csv"
+        )
+    except Exception:
+        path = Path(__file__).resolve().parent.parent / "fixtures" / "sha1_whitelist.csv"
+        if path.exists() and path.is_file():
+            _ALLOWED_SHA1_PATH = path
+            text = path.read_text(encoding="utf-8")
+        else:
+            _ALLOWED_SHA1_PATH = None
+            _ALLOWED_SHA1 = set()
+            return _ALLOWED_SHA1
 
     allowed: set[str] = set()
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in text.splitlines():
         s = line.strip()
         s = s.lstrip("\ufeff")
+        if not s:
+            continue
         if s.lower() == "sha1":
             continue
         if "," in s:
@@ -61,14 +67,14 @@ KEY = "PASSCODE"
 TITLE = "Welcome to the RBSChooser tutorial"
 NEXT_STEP = "020"
 HASH_MODE = "json"
-SUBMIT_STUB = 'mentor.submit("PASSCODE", "<your_passcode>")'
+SUBMIT_STUB = 'mentor.submit_display("PASSCODE", "<your_passcode>")'
 
 
 def render(state) -> str:
     return (
         "In this tutorial, you will build a function called **RBSChooser2** with help from an LLM.\n\n"
-        "This notebook runs one step at a time. Each step tells you what to run next using `mentor.submit(KEY, answer)`.\n"
-        "Run the line shown, and I will show you the next step.\n\n"
+        "This notebook runs one step at a time. Each step shows a single line to run next using `mentor.submit_display(KEY, answer)`.\n"
+        "Run the line shown, and the notebook will display the next step.\n\n"
         "To start, enter your passcode. You should have received it by email. If you did not receive it, contact your instructor.\n\n"
         "Paste only the passcode. It must be a single word with letters only."
     )

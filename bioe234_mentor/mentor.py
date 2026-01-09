@@ -138,9 +138,13 @@ class Mentor:
         body = str(step.render(self._state)).strip()
 
         if step.submit_stub:
-            snippet = step.submit_stub
+            raw_snippet = step.submit_stub
         else:
-            snippet = f'mentor.submit("{step.key}", <your_answer_here>)'
+            raw_snippet = f'mentor.submit_display("{step.key}", <your_answer_here>)'
+
+        snippet = raw_snippet
+        if raw_snippet.lstrip().startswith("mentor.submit("):
+            snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
 
         return f"## {step.title}\n\n{body}\n\n**Submit:**\n```python\n{snippet}\n```"
 
@@ -249,7 +253,10 @@ class Mentor:
         step = self._load_step(self.current_step_id())
 
         if key != step.key:
-            snippet = step.submit_stub or f'mentor.submit("{step.key}", <your_answer_here>)'
+            raw_snippet = step.submit_stub or f'mentor.submit_display("{step.key}", <your_answer_here>)'
+            snippet = raw_snippet
+            if raw_snippet.lstrip().startswith("mentor.submit("):
+                snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
             return (
                 "## Not quite\n\n"
                 f"You are currently on step **{step.step_id}** and I am expecting key **{step.key}**.\n\n"
@@ -259,7 +266,10 @@ class Mentor:
 
         ok, reason = step.shape_check(answer)
         if not ok:
-            snippet = step.submit_stub or f'mentor.submit("{step.key}", <your_answer_here>)'
+            raw_snippet = step.submit_stub or f'mentor.submit_display("{step.key}", <your_answer_here>)'
+            snippet = raw_snippet
+            if raw_snippet.lstrip().startswith("mentor.submit("):
+                snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
             return (
                 "## Try again\n\n"
                 f"Your submission for **{step.key}** did not match the expected shape.\n\n"
@@ -273,7 +283,10 @@ class Mentor:
         if step.validate is not None:
             v_ok, v_msg, v_summary = step.validate(answer, self._state)
             if not v_ok:
-                snippet = step.submit_stub or f'mentor.submit("{step.key}", <your_answer_here>)'
+                raw_snippet = step.submit_stub or f'mentor.submit_display("{step.key}", <your_answer_here>)'
+                snippet = raw_snippet
+                if raw_snippet.lstrip().startswith("mentor.submit("):
+                    snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
                 return (
                     "## Try again\n\n"
                     f"I ran a check for **{step.key}** and it did not pass.\n\n"
@@ -290,7 +303,10 @@ class Mentor:
         try:
             sha1, meta = fingerprint_submission(answer, step.hash_mode)
         except FileNotFoundError as e:
-            snippet = step.submit_stub or f'mentor.submit("{step.key}", <your_answer_here>)'
+            raw_snippet = step.submit_stub or f'mentor.submit_display("{step.key}", <your_answer_here>)'
+            snippet = raw_snippet
+            if raw_snippet.lstrip().startswith("mentor.submit("):
+                snippet = raw_snippet.replace("mentor.submit(", "mentor.submit_display(", 1)
             return (
                 "## Try again\n\n"
                 f"I expected a file path for **{step.key}**, but this file does not exist:\n\n"
