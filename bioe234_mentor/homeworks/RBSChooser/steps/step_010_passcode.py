@@ -13,7 +13,7 @@ def _load_allowed_sha1() -> set[str]:
 
     candidates = [
         Path(__file__).resolve().parent.parent / "fixtures" / "sha1_whitelist.csv",
-        # Path(__file__).resolve().parents[4] / "sha1_whitelist.csv",
+        Path(__file__).resolve().parents[4] / "sha1_whitelist.csv",
     ]
 
     path: Path | None = None
