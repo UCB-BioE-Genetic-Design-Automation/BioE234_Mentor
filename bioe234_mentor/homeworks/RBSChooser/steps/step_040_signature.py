@@ -4,7 +4,7 @@ import re
 STEP_ID = "040"
 KEY = "RBSCHOOSER2_SIGNATURE"
 TITLE = "Identify the function signature"
-NEXT_STEP = "DONE"
+NEXT_STEP = "050"
 HASH_MODE = "json"
 SUBMIT_STUB = (
     "sig_json = r'''{\n"
