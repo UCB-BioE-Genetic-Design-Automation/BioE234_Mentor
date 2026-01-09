@@ -1,24 +1,24 @@
 STEP_ID: 010
-TITLE: Get Passcode
-STOP_REQUIRED: true
 
-STUDENT_MESSAGE:
+TITLE: Get Passcode
+
+LOGIC:
+- If the student has not yet replied in this step, do not attempt validation.
+- If the student has replied, validate the reply as the passcode:
+  - Trim leading/trailing whitespace.
+  - The reply must be a single word containing letters only (no spaces, numbers, or punctuation).
+  - If valid: KEEP("PASSCODE", <student_reply>) and complete this exchange.
+  - If invalid: do not complete this exchange; re-emit this step's TITLE and MESSAGE.
+
+MESSAGE:
 I am here to guide you on how to use an LLM to help you code. I will be using Google Keep to store notes about your progress. You can view what I write under 'RBSChooser_Mentor_Notes' but please do not edit them until this assignment is complete.
 
-To get started, please copy and paste your passcode which was provided via email. If you do not know your passcode, email your instructor to obtain it before proceeding.
-
-VALIDATION_RULES:
-- Student replies with a single word (small town name).
-- If the response contains spaces or looks like a sentence, ask them to paste only the passcode.
+To get started, please copy and paste your passcode which was provided via email. Your passcode is a single word (a small town name) and should contain letters only. If you paste anything with spaces, numbers, or punctuation, I will ask you to paste only the passcode.
 
 LOG_ON_ENTER:
 - <DATE>: Requested passcode.
 
-LOG_ON_SUCCESS:
+LOG_ON_COMPLETE:
 - <DATE>: Student provided passcode.
 
-LOG_ON_FAIL:
-- <DATE>: Passcode format invalid.
-
-NEXT_STEP_ON_SUCCESS: 020
-NEXT_STEP_ON_FAIL: 010
+NEXT_STEP: 020
