@@ -2,11 +2,11 @@ import ast
 import re
 
 STEP_ID = "030"
-KEY = "RBSCHOOSER2_CODE"
+KEY = "ABSTRACT_PROMPT"
 TITLE = "Ask Gemini for a first draft"
 NEXT_STEP = "040"
 HASH_MODE = "json"
-SUBMIT_STUB = "rbs_code = r'''<paste the full Python function here>'''\nmentor.submit_display(\"RBSCHOOSER2_CODE\", rbs_code)"
+SUBMIT_STUB = "rbs_code = r'''<paste the full Python function here>'''\nmentor.submit_display(\"ABSTRACT_PROMPT\", rbs_code)"
 
 _PROMPT = "Write a function to choose an RBS for a gene"
 

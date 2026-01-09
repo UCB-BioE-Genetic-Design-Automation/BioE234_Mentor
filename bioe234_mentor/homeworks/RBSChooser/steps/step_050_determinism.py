@@ -5,7 +5,6 @@ NEXT_STEP = "DONE"
 HASH_MODE = "json"
 
 SUBMIT_STUB = (
-    "is_deterministic = False\n"
     "mentor.submit_display(\"IS_DETERMINISTIC\", is_deterministic)"
 )
 
@@ -18,10 +17,8 @@ def render(state) -> str:
         "```python\n"
         "import random\n\n"
         "def choose_rbs(cds: str) -> str:\n"
-        "    sd = \"AGGAGG\"\n"
-        "    upstream = \"\".join(random.choice(\"ACGT\") for _ in range(4))\n"
-        "    downstream = \"\".join(random.choice(\"ACGT\") for _ in range(6))\n"
-        "    return upstream + sd + downstream\n"
+        "    sds = [\"AGGAGG\", \"AAGGAG\", \"GGAGGA\"]\n"
+        "    return random.choice(sds)\n"
         "```\n\n"
         "Your task is to decide whether `choose_rbs` is deterministic, using two approaches.\n\n"
         "1) Ask Gemini (reasoning)\n"
@@ -34,10 +31,9 @@ def render(state) -> str:
         "- defines the function exactly as shown above\n"
         "- makes an example `cds` string (any DNA sequence is fine)\n"
         "- calls `choose_rbs(cds)` twice\n"
-        "- compares the two outputs and stores the result in a variable named `is_deterministic` (a boolean)\n"
-        "- prints the two outputs and prints `is_deterministic`\n\n"
+        "- compares the two outputs and stores the result in a variable named `is_deterministic` (a boolean)\n\n"
         "After you run that code cell, submit the value of `is_deterministic`.\n\n"
-        "Expected outcome: for this function, `is_deterministic` should be False.\n"
+        "Expected outcome: because the function randomly selects among three SD sequences, `is_deterministic` should be False."
     )
 
 
