@@ -1,0 +1,21 @@
+
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bioe234_mentor"
+version = "0.1.0"
+description = "One-step-at-a-time mentor engine for BioE234"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "UCB BioE Genetic Design Automation"}]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bioe234_mentor*"]
