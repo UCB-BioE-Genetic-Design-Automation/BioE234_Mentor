@@ -66,10 +66,10 @@ SUBMIT_STUB = 'mentor.submit("PASSCODE", "<your_passcode>")'
 
 def render(state) -> str:
     return (
-        "Welcome. This tutorial runs one step at a time inside this Colab notebook.\n\n"
-        "Each step will show you exactly what to submit using `mentor.submit(KEY, answer)`.\n\n"
-        "To begin, paste your passcode as a single word containing letters only.\n"
-        "If you include spaces, numbers, or punctuation, resubmit with only the passcode.\n"
+        "Welcome to the RBSChooser tutorial.\n\n"
+        "I will ask you to do one task at a time. For each task, I will show you exactly what to run in the next code block using `mentor.submit(KEY, answer)`. You run it, and I will show you the next step.\n\n"
+        "To start, what is your passcode? You should have received it by email. If you did not receive it, contact your instructor.\n\n"
+        "Paste only the passcode. It must be a single word with letters only."
     )
 
 

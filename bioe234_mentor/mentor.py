@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 import json
 import runpy
+import html
+import uuid
 
 from . import loaders
 from .util import now_iso, fingerprint_submission, stable_json
@@ -24,6 +26,8 @@ class LoadedStep:
 
 
 class Mentor:
+    _display_seq = 0
+
     def __init__(
         self,
         homework: str,
@@ -139,6 +143,87 @@ class Mentor:
             snippet = f'mentor.submit("{step.key}", <your_answer_here>)'
 
         return f"## {step.title}\n\n{body}\n\n**Submit:**\n```python\n{snippet}\n```"
+
+    def show_md(self):
+        try:
+            from IPython.display import Markdown
+        except Exception:
+            return self.show()
+        return Markdown(self.show())
+
+    def _repr_markdown_(self) -> str:
+        return self.show()
+
+    def _html_block(self) -> str:
+        if self.is_finished():
+            return f"<pre>{html.escape(self.final_report())}</pre>"
+
+        step = self._load_step(self.current_step_id())
+        body = str(step.render(self._state)).strip()
+        snippet = step.submit_stub or f'mentor.submit("{step.key}", <your_answer_here>)'
+
+        self.__class__._display_seq += 1
+        suffix = f"{self.__class__._display_seq}_{uuid.uuid4().hex[:8]}"
+        btn_id = f"mentor_copy_btn_{suffix}"
+        msg_id = f"mentor_copy_msg_{suffix}"
+        code_id = f"mentor_code_{suffix}"
+
+        title = html.escape(step.title)
+        body_html = html.escape(body).replace("\n", "<br>")
+        code_html = html.escape(snippet)
+
+        block = (
+            "<div style='font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; line-height:1.4;'>"
+            "<div style='font-size:22px; font-weight:700; margin:0 0 10px 0; line-height:1.2;'>" + title + "</div>"
+            "<div style='font-size:15px; margin:0 0 14px 0;'>" + body_html + "</div>"
+            "<div style='display:flex; align-items:center; gap:10px; margin:0 0 6px 0;'>"
+            "<div style='font-weight:700;'>Run:</div>"
+            f"<button id='{btn_id}' style='padding:6px 10px; border:1px solid #ccc; border-radius:6px; background:#fff; cursor:pointer;'>Copy</button>"
+            f"<span id='{msg_id}' style='font-size:13px; color:#555;'></span>"
+            "</div>"
+            f"<pre id='{code_id}' style='margin:0; padding:10px; background:#f6f8fa; border:1px solid #ddd; border-radius:8px; overflow:auto;'>"
+            "<code>" + code_html + "</code></pre>"
+            "<script>"
+            "(function(){"
+            f"var btn=document.getElementById('{btn_id}');"
+            f"var msg=document.getElementById('{msg_id}');"
+            f"var code=document.getElementById('{code_id}').innerText;"
+            "function done(ok){msg.textContent=ok?'Copied.':'Copy failed.'; setTimeout(function(){msg.textContent='';},1200);}"
+            "btn.onclick=function(){"
+            "if(navigator && navigator.clipboard && navigator.clipboard.writeText){"
+            "navigator.clipboard.writeText(code).then(function(){done(true);}).catch(function(){done(false);});"
+            "}else{"
+            "try{var ta=document.createElement('textarea'); ta.value=code; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done(true);}catch(e){done(false);}"
+            "}"
+            "};"
+            "})();"
+            "</script>"
+            "</div>"
+        )
+
+        return block
+
+    def show_html(self):
+        try:
+            from IPython.display import HTML
+        except Exception:
+            return self.show()
+        return HTML(self._html_block())
+
+    def _repr_html_(self) -> str:
+        return self._html_block()
+
+    def display(self) -> None:
+        try:
+            from IPython.display import display
+        except Exception:
+            print(self.show())
+            return
+        display(self.show_html())
+
+    def submit_display(self, key: str, answer: Any) -> None:
+        self.submit(key, answer)
+        self.display()
 
     def submit(self, key: str, answer: Any) -> str:
         if self.is_finished():
