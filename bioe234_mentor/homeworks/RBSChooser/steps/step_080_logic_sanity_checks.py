@@ -54,7 +54,7 @@ def render(state: Dict[str, Any]) -> str:
         "1) Copy the code below into your notebook (or just read it).\n"
         "2) Copy the prompt below into your existing Gemini chat.\n"
         "3) Gemini will list 10 issues.\n"
-        "4) Then answer the multiple-choice question: which issue did Gemini NOT mention?\n\n"
+        "4) Then answer the multiple-choice question: which issue did Gemini say was wrong with the algorithm?\n\n"
         "Example code (placeholder):\n"
         "```python\n" + EXAMPLE_CODE + "\n```\n\n"
         "Prompt for Gemini (copy everything):\n"
@@ -83,7 +83,7 @@ def validate(answer: Any, state: Dict[str, Any]):
     choice = str(answer).strip()
 
     if choice not in VALID_CHOICES:
-        return False, "That was mentioned by the LLM (or is not one of the intended answers).", {}
+        return False, "That is not one of the issues we are looking for here.", {}
 
     return True, "Correct.", {}
 
@@ -99,14 +99,12 @@ def gui(state: Dict[str, Any], mentor) -> None:
 
     intro = HTML(
         "<div style='margin:0 0 10px 0;'>"
-        "<b>Question:</b> Which issue did the LLM <i>not</i> mention as a problem with the algorithm?"
+        "<b>Question:</b> Which issue did the LLM say was wrong with the algorithm?"
         "</div>"
     )
     display(intro)
 
-    quiz_prompt = (
-        "Which of the following issues did the LLM NOT say was wrong with this algorithm?"
-    )
+    quiz_prompt = "Which of the following issues did the LLM say was wrong with this algorithm?"
 
     valid = VALID_CHOICES
 
