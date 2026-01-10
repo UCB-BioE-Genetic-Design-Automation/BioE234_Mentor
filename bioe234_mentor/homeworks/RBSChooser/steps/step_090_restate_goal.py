@@ -8,36 +8,30 @@ KEY = "RESTATE_GOAL"
 TITLE = "Project overview and download data"
 NEXT_STEP = "100"
 HASH_MODE = "json"
-SUBMIT_STUB = "mentor.submit_display('RESTATE_GOAL', 'FILE1,FILE2')"
+SUBMIT_STUB = "mentor.submit_display('RESTATE_GOAL', 'PUT_THE_TXT_FILENAME_HERE')"
 
 
 def render(state: Dict[str, Any]) -> str:
     return (
-        "<p>We are now transitioning from LLM workflow skills to building RBSChooser2.</p>"
-        "<h2>Selection of Ribosome Binding Sites (RBS)</h2>"
-        "<p>"
+        "We are now transitioning from LLM workflow skills to building RBSChooser2.\n\n"
+        "## Selection of Ribosome Binding Sites (RBS)\n"
         "This project guides you through the synthetic biology challenge of selecting an RBS that effectively expresses a foreign gene. "
-        "Using raw experimental data and AI assistance, you will create an RBSChooser function that processes genetic data to predict well expressing transcripts."
-        "</p>"
-        "<h3>Learning Objectives</h3>"
-        "<ul>"
-        "<li>Understand synthetic biology principles related to RBS functionality.</li>"
-        "<li>Learn to tackle genomics and proteomics problems.</li>"
-        "<li>Utilize an LLM for coding assistance and script refinement.</li>"
-        "<li>Apply the function as object pattern for efficient data preprocessing.</li>"
-        "<li>Engage in a multi objective optimization problem.</li>"
-        "</ul>"
-        "<h2>Implementing initiate</h2>"
-        "<p>The central insights behind our implementation of RBSChooser are:</p>"
-        "<ol>"
-        "<li>Naturally occurring 5' UTR sequences are evolutionarily optimized to work.</li>"
-        "<li>Proteomics data can empirically define strongly expressing genes.</li>"
-        "<li>A primary source of failure can be anticipated with secondary structure prediction.</li>"
-        "</ol>"
-        "<p>For this approach, we will use gene sequences and proteomics data from E. coli K12 isolate MG1655.</p>"
-        "<h2>Download the source data</h2>"
-        "<p>Run the following code in the next code cell:</p>"
-        "<pre><code>"
+        "Using raw experimental data and AI assistance, you will create an RBSChooser function that processes genetic data to predict well expressing transcripts.\n\n"
+        "## Learning Objectives\n"
+        "• Understand synthetic biology principles related to RBS functionality.\n"
+        "• Learn to tackle genomics and proteomics problems.\n"
+        "• Utilize an LLM for coding assistance and script refinement.\n"
+        "• Apply the function as object pattern for efficient data preprocessing.\n"
+        "• Engage in a multi objective optimization problem.\n\n"
+        "## Implementing initiate\n\n"
+        "The central insights behind our implementation of RBSChooser are:\n"
+        "1) Naturally occurring 5' UTR sequences are evolutionarily optimized to work.\n"
+        "2) Proteomics data can empirically define strongly expressing genes.\n"
+        "3) A primary source of failure can be anticipated with secondary structure prediction.\n\n"
+        "For this approach, we will use gene sequences and proteomics data from E. coli K12 isolate MG1655.\n\n"
+        "## Download the source data\n"
+        "Run the following code in the next code cell:\n\n"
+        "```python\n"
         "# Install gdown if not already installed\n"
         "!pip install -q gdown\n\n"
         "file_urls = [\n"
@@ -46,22 +40,18 @@ def render(state: Dict[str, Any]) -> str:
         "]\n\n"
         "for url in file_urls:\n"
         "    !gdown {url}\n"
-        "</code></pre>"
-        "<p>After the downloads finish, run <code>!ls -1</code> and submit the two downloaded file names as a comma separated string.</p>"
-        "<p><b>Submission (copy and edit):</b></p>"
-        "<pre><code>"
-        "mentor.submit_display('RESTATE_GOAL', 'FILE1,FILE2')\n"
-        "</code></pre>"
+        "```\n\n"
+        "After the downloads finish, click the folder icon on the left sidebar (Files) and look for the downloaded TXT file. Submit the exact name of the proteomics TXT file."
     )
 
 
 def shape_check(answer: Any) -> Tuple[bool, str]:
     if not isinstance(answer, str) or not answer.strip():
-        return False, "Submit the two downloaded file names as a comma separated string."
+        return False, "Submit the exact name of the downloaded proteomics TXT file."
 
-    parts = [p.strip() for p in answer.split(",") if p.strip()]
-    if len(parts) != 2:
-        return False, "Submit exactly two file names, separated by a single comma."
+    name = answer.strip()
+    if name != "511145-WHOLE_ORGANISM-integrated.txt":
+        return False, "Submit the exact filename: 511145-WHOLE_ORGANISM-integrated.txt"
 
     return True, ""
 
@@ -69,15 +59,21 @@ def shape_check(answer: Any) -> Tuple[bool, str]:
 def validate(answer: Any, state: Dict[str, Any]):
     from pathlib import Path
 
-    parts = [p.strip() for p in str(answer).split(",") if p.strip()]
+    name = str(answer).strip()
 
-    missing = [name for name in parts if not Path(name).exists()]
-    if missing:
-        return False, f"I could not find these file(s) in the notebook runtime: {', '.join(missing)}", {
-            "submitted": parts,
+    expected = "511145-WHOLE_ORGANISM-integrated.txt"
+    if name != expected:
+        return False, f"Submit the exact filename: {expected}", {}
+
+    if not Path(expected).exists():
+        return False, (
+            "I could not find the expected TXT file in the notebook runtime. "
+            "Make sure the download cell ran successfully and the file appears in the Colab Files panel."
+        ), {
+            "expected": expected,
             "cwd": str(Path.cwd()),
         }
 
     return True, "Downloads found. Proceeding.", {
-        "files": parts,
+        "file": expected,
     }
