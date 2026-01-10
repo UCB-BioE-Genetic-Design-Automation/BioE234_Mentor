@@ -17,8 +17,7 @@ HASH_MODE = "json"
 # - It tells Gemini to INCLUDE ATG in the returned RBS. Most pipelines concatenate
 #   rbs + cds where cds already starts with ATG, producing ATGATG at the junction.
 #
-# The prompt also quietly asserts an unreal spacing number to bait the student,
-# but the autograde check focuses on the deterministic, testable junction bug.
+# The prompt includes plausible spacing language; the autograde check focuses on the deterministic junction bug.
 BAD_PROMPT = '''Implement this function exactly (do not change name or signature):
 
 
@@ -34,7 +33,7 @@ Constraints:
 
 Biology and formatting requirements (follow exactly):
 1. Use the canonical E. coli Shine-Dalgarno motif `AGGAGG`.
-2. The optimal spacing is exactly 2 nucleotides between the end of the Shine-Dalgarno motif and the start codon.
+2. Use a 7-nucleotide spacer between the end of the Shine-Dalgarno motif and the start codon.
 3. Treat the returned “RBS” as the whole translation-initiation region, so it must include the start codon `ATG` at the end.
 4. Choose the spacer deterministically from the CDS GC content:
    - if GC fraction of `cds` is >= 0.50, use spacer `GC`
@@ -49,13 +48,13 @@ def render(state: Dict[str, Any]) -> str:
     return (
         "You are about to use an intentionally bad prompt.\n\n"
         "1) Copy the prompt below into your existing Gemini chat and let it generate a `choose_rbs` function.\n"
-        "2) Come back here, open the GUI, and answer the multiple-choice question.\n\n"
+        "2) Paste Gemini's returned `def choose_rbs(cds: str) -> str:` into a NEW code cell in this Colab and run it.\n"
+        "3) Run the function on a test CDS and look at the output.\n"
+        "4) Paste the output back into Gemini and ask: 'What is wrong with this output biologically, and what was wrong with my prompt?'\n\n"
         "Bad prompt (copy everything):\n"
         "```text\n"
         + BAD_PROMPT
         + "\n```\n\n"
-        "Open the GUI:\n"
-        "```python\nmentor.gui()\n```"
     )
 
 
@@ -73,19 +72,21 @@ def shape_check(answer: Any) -> Tuple[bool, str]:
     return True, ""
 
 
-_CORRECT_CHOICE = (
-    "It instructs Gemini to include the start codon ATG inside the returned RBS. "
-    "If you later build the full sequence as rbs + cds and cds already starts with ATG, "
-    "you get a duplicated ATG at the junction (ATGATG)."
-)
+VALID_CHOICES = [
+    "It adds an extra ATG by putting ATG in the returned RBS.",
+    "It duplicates the start codon when you concatenate rbs + cds.",
+    "It hardcodes ATG into the returned RBS sequence.",
+    "It returns an initiation region, not an upstream-only RBS.",
+    "It forces ATGATG at the junction when you do rbs + cds.",
+]
 
 
 def validate(answer: Dict[str, Any], state: Dict[str, Any]):
     choice = str(answer.get("choice", "")).strip()
     code = str(answer.get("code", "")).strip()
 
-    if choice != _CORRECT_CHOICE:
-        return False, "That is not the main issue causing the deterministic failure we are targeting.", {}
+    if choice not in VALID_CHOICES:
+        return False, "That is not the issue we are targeting for the deterministic downstream failure.", {}
 
     # Basic sanity checks for the pasted code.
     if "def choose_rbs" not in code:
@@ -135,10 +136,13 @@ def validate(answer: Dict[str, Any], state: Dict[str, Any]):
     return True, (
         "Nice. You found the failure mode the prompt is trying to bait.\n\n"
         "Now do a quick experiment (no submission needed).\n"
-        "Go back to Gemini and reuse the same prompt, but replace the phrase 'exactly 2 nucleotides' with 'the correctly-sized spacer'.\n"
+        "Go back to Gemini and reuse the same prompt, but remove the instruction that says to include ATG in the returned RBS.\n"
+        "If you leave that instruction out, the model will usually default to returning an upstream-only RBS (no extra start codon).\n\n"
+        "Optional: also try replacing 'Use a 7-nucleotide spacer' with 'Use the correctly-sized spacer'.\n"
         "This makes the instruction abstract, so the model will inject what it believes is the correct spacing.\n\n"
         "After Gemini responds, ask: 'What spacer length did you pick, and why?'\n"
-        "Notice how changing one concrete number into an abstract constraint changes what the model supplies."
+        "Notice how removing a constraint can sometimes produce a more informed and correct result than a mistaken, overspecified instruction.\n"
+        "If you are not sure what the right value is, define it abstractly and ask the model to choose and explain its choice."
     ), {
         "rbs_len": len(rbs),
         "rbs_end": rbs[-12:],
@@ -171,28 +175,48 @@ def gui(state: Dict[str, Any], mentor) -> None:
         "Which instruction is the main problem and causes a deterministic downstream failure when someone later builds the full sequence as rbs + cds?"
     )
 
-    valid = [_CORRECT_CHOICE]
+    valid = VALID_CHOICES
 
     invalid = [
         (
-            "The Shine-Dalgarno motif AGGAGG is wrong.",
+            "AGGAGG is the wrong Shine-Dalgarno sequence here.",
             "AGGAGG is a common Shine-Dalgarno motif; this is not the key issue here.",
         ),
         (
-            "Choosing the spacer based on GC fraction is invalid because GC fraction is undefined.",
+            "GC fraction is undefined, so the spacer rule cannot work.",
             "GC fraction is easy to compute. The bigger issue is what the prompt forces into the returned string.",
         ),
         (
-            "The prompt is wrong because it demands determinism.",
+            "Requiring determinism is the problem with this prompt.",
             "Determinism is not the issue. The failure is about what gets concatenated at the junction.",
         ),
         (
-            "The issue is that it asks for code only, not an explanation.",
+            "Asking for code-only output is the problem here.",
             "That is a formatting request, not the biological logic bug.",
         ),
         (
-            "The problem is that 2-nt spacing is not always optimal.",
+            "Using a fixed spacer length is the main biological error.",
             "That is suspicious, but the deterministic failure we are checking is caused by a different instruction.",
+        ),
+        (
+            "It should use RNA bases (U) instead of DNA (T).",
+            "RBS sequences are typically written as DNA in this homework context. This is not what causes the deterministic junction bug.",
+        ),
+        (
+            "It should ask for the reverse complement of the RBS.",
+            "No reverse complement is needed for this task. The failure we are targeting is a duplicated start codon at the junction.",
+        ),
+        (
+            "The Shine-Dalgarno should be AAGGAG, not AGGAGG.",
+            "There are many plausible SD-like motifs. The key deterministic failure here is about duplicating ATG when concatenating rbs + cds.",
+        ),
+        (
+            "It should explicitly require uppercase output only.",
+            "Case normalization is not the issue. The deterministic failure is created by including ATG inside the returned RBS.",
+        ),
+        (
+            "It should validate that the CDS starts with ATG first.",
+            "Even if you validated the CDS, including ATG in the returned RBS still creates a duplicated ATG when the CDS already begins with ATG.",
         ),
     ]
 
@@ -216,8 +240,8 @@ def gui(state: Dict[str, Any], mentor) -> None:
         valid=valid,
         invalid=invalid,
         prompt=quiz_prompt,
-        n_total=5,
-        n_valid=1,
+        n_total=10,
+        n_valid=5,
         seed=None,
         submit_call_builder=submit_call_builder,
         state=state,
