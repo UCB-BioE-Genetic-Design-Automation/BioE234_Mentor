@@ -18,6 +18,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import random
 import html
 import uuid
+import json
 import time
 import threading
 
@@ -438,9 +439,7 @@ def display_mcq_widget(
         btn_id = f"mcq_copyonly_btn_{suffix}"
         msg_id = f"mcq_copyonly_msg_{suffix}"
 
-        safe = text.replace("\\", "\\\\").replace("'", "\\'")
-        safe = safe.replace("\r\n", "\n").replace("\r", "\n")
-        safe = safe.replace("</", "<\\/")
+        payload = json.dumps(text).replace("</", "<\\/")
 
         return HTML(
             "<div style='display:flex; align-items:center; gap:10px; margin:8px 0 0 0;'>"
@@ -450,7 +449,7 @@ def display_mcq_widget(
             "<script>(function(){"
             f"var btn=document.getElementById('{btn_id}');"
             f"var msg=document.getElementById('{msg_id}');"
-            f"var text='{safe}';"
+            f"var text={payload};"
             "function done(ok){msg.textContent=ok?'Copied.':'Copy failed.'; setTimeout(function(){msg.textContent='';},1200);}"
             "btn.onclick=function(){"
             "if(navigator && navigator.clipboard && navigator.clipboard.writeText){"
