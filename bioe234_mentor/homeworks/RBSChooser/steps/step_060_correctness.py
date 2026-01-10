@@ -49,14 +49,11 @@ INVALID = [
 SUBMIT_STUB = None
 
 
-def gemini_prompt_builder(_prompt: str, options: List[str]) -> str:
+def gemini_prompt_builder(_prompt: str) -> str:
     lines: List[str] = []
     lines.append("You are helping a student diagnose a failure in an RBS design workflow.")
     lines.append("Scenario: a team used choose_rbs upstream of GFP and assembled the result by concatenating rbs + cds, but colonies did not turn green.")
     lines.append("Discuss with the student plausible explanations for why GFP did not express in this workflow.")
-    lines.append("")
-    for i, opt in enumerate(options, 1):
-        lines.append(f"{i}) {opt}")
     return "\n".join(lines)
 
 

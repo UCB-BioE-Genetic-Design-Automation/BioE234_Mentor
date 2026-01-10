@@ -177,7 +177,7 @@ def display_mcq_widget(
     state: Optional[Dict[str, Any]] = None,
     state_key: Optional[str] = None,
     warn_repeat_threshold: int = 5,
-    gemini_prompt_builder: Optional[Callable[[str, List[str]], str]] = None,
+    gemini_prompt_builder: Optional[Callable[[str], str]] = None,
     show_gemini_after_wrong_attempts: int = 3,
     cooldown_after_wrong_attempts: int = 3,
     cooldown_seconds: int = 6,
@@ -216,8 +216,9 @@ def display_mcq_widget(
 
       3) Engagement support:
          - after several wrong attempts or repeated selections, a "Copy for Gemini"
-           button appears. It copies a prompt (built by `gemini_prompt_builder` if
-           provided, otherwise a generic prompt) without displaying that text.
+           button appears. It copies a prompt (built by `gemini_prompt_builder(prompt)` if
+           provided, otherwise a generic prompt that includes the current options)
+           without displaying that text.
 
       4) Cooldown:
          - after `cooldown_after_wrong_attempts` wrong checks, the Check button is
@@ -467,7 +468,7 @@ def display_mcq_widget(
         if (wa >= int(show_gemini_after_wrong_attempts)) or (rc >= int(warn_repeat_threshold)):
             options_texts = list(radio.options)
             if gemini_prompt_builder is not None:
-                gemini_text = gemini_prompt_builder(prompt, options_texts)
+                gemini_text = gemini_prompt_builder(prompt)
             else:
                 gemini_text = _default_gemini_prompt(prompt, options_texts)
             display(_copy_button("Copy for Gemini", gemini_text))
