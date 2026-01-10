@@ -11,7 +11,7 @@ NEXT_STEP = None
 HASH_MODE = "json"
 
 # The student is expected to paste this into Gemini, then paste the generated code
-# into their local rbschooser.py and observe the downstream failure.
+# into a new code cell in the same Colab notebook and observe the downstream failure.
 #
 # Subtle (but important) wrong instruction:
 # - It tells Gemini to INCLUDE ATG in the returned RBS. Most pipelines concatenate
@@ -19,16 +19,13 @@ HASH_MODE = "json"
 #
 # The prompt also quietly asserts an unreal spacing number to bait the student,
 # but the autograde check focuses on the deterministic, testable junction bug.
-BAD_PROMPT = """You are helping me complete the BioE234 RBSChooser homework.
+BAD_PROMPT = '''Implement this function exactly (do not change name or signature):
 
-Implement this function exactly (do not change name or signature):
 
-```python
 def choose_rbs(cds: str) -> str:
-    \"\"\"
+    """
     Given a CDS (DNA sequence string), return an RBS (DNA sequence string) to place immediately upstream.
-    \"\"\"
-```
+    """
 
 Constraints:
 - `cds` is a DNA sequence string (A/C/G/T).
@@ -45,16 +42,23 @@ Biology and formatting requirements (follow exactly):
 
 So the return value must be: `AGGAGG` + spacer + `ATG`.
 
-Please output only the Python code for `choose_rbs` (imports allowed), nothing else."""
+Please output only the Python code for `choose_rbs` (imports allowed), nothing else.'''
 
 
 def render(state: Dict[str, Any]) -> str:
     return (
         "You are about to use an intentionally bad prompt.\n\n"
-        "1) Copy the prompt below into your existing Gemini chat and let it generate code.\n"
-        "2) Paste the generated code into your local `rbschooser.py` and run your checks.\n"
-        "3) Come back here and use the GUI to answer the multiple-choice question.\n\n"
-        "Paste the generated `def choose_rbs(...)` code into the textbox in the GUI before you answer.\n\n"
+        "1) Copy the prompt below into your existing Gemini chat and let it generate a `choose_rbs` function.\n"
+        "2) Paste Gemini's `def choose_rbs(cds: str) -> str:` into the **next code cell in this Colab** and run it (so `choose_rbs` exists in the notebook).\n"
+        "3) In the next cell, run this quick check and look at the junction: \n"
+        "```python\n"
+        "test_cds = 'ATG' + 'GCT'*20\n"
+        "rbs = choose_rbs(test_cds)\n"
+        "print('RBS:', rbs)\n"
+        "print('junction (last 3 of RBS + first 3 of CDS):', (rbs + test_cds)[len(rbs)-3:len(rbs)+3])\n"
+        "```\n"
+        "4) Paste that output back into Gemini and ask: 'Is this biologically correct? If not, what exactly is wrong with the prompt I used?'\n"
+        "5) Come back here, open the GUI, and answer the multiple-choice question.\n\n"
         "Bad prompt (copy everything):\n"
         "```text\n"
         + BAD_PROMPT
@@ -74,7 +78,7 @@ def shape_check(answer: Any) -> Tuple[bool, str]:
     if not isinstance(choice, str) or not choice.strip():
         return False, "'choice' must be a non-empty string."
     if not isinstance(code, str) or not code.strip():
-        return False, "'code' must be a non-empty string containing the function you pasted."
+        return False, "'code' must be a non-empty string containing the source of `choose_rbs`."
     return True, ""
 
 
@@ -131,13 +135,20 @@ def validate(answer: Dict[str, Any], state: Dict[str, Any]):
         return False, (
             "For this step, your pasted code should reflect the bad prompt and create a duplicated start codon "
             "when concatenated as rbs + cds (junction contains ATGATG). "
-            "It did not. Make sure you pasted the code Gemini generated from the bad prompt."
+            "It did not. Make sure you defined `choose_rbs` using Gemini's output from the bad prompt, and that the submission captured its source correctly."
         ), {
             "rbs_end": rbs[-12:],
             "junction_snippet": junction,
         }
 
-    return True, "Nice. You found the failure mode the prompt is trying to bait.", {
+    return True, (
+        "Nice. You found the failure mode the prompt is trying to bait.\n\n"
+        "Now do a quick experiment (no submission needed).\n"
+        "Go back to Gemini and reuse the same prompt, but replace the phrase 'exactly 2 nucleotides' with 'the correctly-sized spacer'.\n"
+        "This makes the instruction abstract, so the model will inject what it believes is the correct spacing.\n\n"
+        "After Gemini responds, ask: 'What spacer length did you pick, and why?'\n"
+        "Notice how changing one concrete number into an abstract constraint changes what the model supplies."
+    ), {
         "rbs_len": len(rbs),
         "rbs_end": rbs[-12:],
         "junction_snippet": junction,
@@ -145,7 +156,7 @@ def validate(answer: Dict[str, Any], state: Dict[str, Any]):
 
 
 def gui(state: Dict[str, Any], mentor) -> None:
-    """GUI: student pastes generated code, then answers the MCQ."""
+    """GUI: student answers the MCQ after defining choose_rbs in the notebook."""
     try:
         import ipywidgets as widgets
         from IPython.display import HTML, display
@@ -157,20 +168,12 @@ def gui(state: Dict[str, Any], mentor) -> None:
 
     intro = HTML(
         "<div style='margin:0 0 10px 0;'>"
-        "<b>Paste the exact code Gemini generated from the bad prompt</b> (including the <code>def choose_rbs</code> line), "
-        "then answer the question below." 
+        "<b>After defining <code>choose_rbs</code> in this notebook, answer the question below.</b><br>"
+        "Your submission will automatically capture the source of <code>choose_rbs</code> from the notebook."
         "</div>"
     )
 
-    code_box = widgets.Textarea(
-        value="",
-        placeholder="Paste the full def choose_rbs(cds: str) -> str: ... here",
-        description="",
-        layout=widgets.Layout(width="100%", height="220px"),
-    )
-
     display(intro)
-    display(code_box)
 
     quiz_prompt = (
         "Detection puzzle: the prompt above is subtly wrong. "
@@ -203,10 +206,8 @@ def gui(state: Dict[str, Any], mentor) -> None:
     ]
 
     def submit_call_builder(key: str, chosen_text: str) -> str:
-        # Embed the pasted code directly so the submission is self-contained.
-        code_text = code_box.value or ""
         return (
-            f"mentor.submit_display({key!r}, {{'choice': {chosen_text!r}, 'code': {code_text!r}}})"
+            f"mentor.submit_display({key!r}, {{'choice': {chosen_text!r}, 'code': __import__('inspect').getsource(choose_rbs)}})"
         )
 
     def gemini_prompt_builder(_: str) -> str:
