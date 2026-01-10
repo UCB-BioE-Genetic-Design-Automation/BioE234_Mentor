@@ -49,21 +49,12 @@ def render(state: Dict[str, Any]) -> str:
     return (
         "You are about to use an intentionally bad prompt.\n\n"
         "1) Copy the prompt below into your existing Gemini chat and let it generate a `choose_rbs` function.\n"
-        "2) Paste Gemini's `def choose_rbs(cds: str) -> str:` into the **next code cell in this Colab** and run it (so `choose_rbs` exists in the notebook).\n"
-        "3) In the next cell, run this quick check and look at the junction: \n"
-        "```python\n"
-        "test_cds = 'ATG' + 'GCT'*20\n"
-        "rbs = choose_rbs(test_cds)\n"
-        "print('RBS:', rbs)\n"
-        "print('junction (last 3 of RBS + first 3 of CDS):', (rbs + test_cds)[len(rbs)-3:len(rbs)+3])\n"
-        "```\n"
-        "4) Paste that output back into Gemini and ask: 'Is this biologically correct? If not, what exactly is wrong with the prompt I used?'\n"
-        "5) Come back here, open the GUI, and answer the multiple-choice question.\n\n"
+        "2) Come back here, open the GUI, and answer the multiple-choice question.\n\n"
         "Bad prompt (copy everything):\n"
         "```text\n"
         + BAD_PROMPT
         + "\n```\n\n"
-        "Then open the GUI:\n"
+        "Open the GUI:\n"
         "```python\nmentor.gui()\n```"
     )
 
