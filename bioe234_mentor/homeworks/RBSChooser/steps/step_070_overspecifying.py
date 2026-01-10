@@ -79,17 +79,7 @@ def validate(answer: Any, state: Dict[str, Any]):
     if choice not in VALID_CHOICES:
         return False, "That is not the issue we are targeting for the deterministic downstream failure.", {}
 
-    return True, (
-        "Nice. You found the failure mode the prompt is trying to bait.\n\n"
-        "Now do a quick experiment (no submission needed).\n"
-        "Go back to Gemini and reuse the same prompt, but replace the instruction about including ATG with: 'Treat the returned “RBS” as the Shine-Dalgarno and spacer only.'\n"
-        "This keeps the start codon inside the CDS, so concatenating rbs + cds does not duplicate ATG.\n\n"
-        "Optional: also try replacing 'Use a 7-nucleotide spacer' with 'Use the correctly-sized spacer'.\n"
-        "This makes the instruction abstract, so the model will inject what it believes is the correct spacing.\n\n"
-        "After Gemini responds, ask: 'What spacer length did you pick, and why?'\n"
-        "Notice how removing a constraint can sometimes produce a more informed and correct result than a mistaken, overspecified instruction.\n"
-        "If you are not sure what the right value is, define it abstractly and ask the model to choose and explain its choice."
-    ), {}
+    return True, "Correct.", {}
 
 
 def gui(state: Dict[str, Any], mentor) -> None:
@@ -105,7 +95,8 @@ def gui(state: Dict[str, Any], mentor) -> None:
 
     intro = HTML(
         "<div style='margin:0 0 10px 0;'>"
-        "<b>Answer the multiple-choice question below.</b>"
+        "<b>Answer the multiple-choice question below.</b><br>"
+        "After you get it right, the next step will appear. The copied line also includes optional comments you can try."
         "</div>"
     )
 
@@ -162,7 +153,17 @@ def gui(state: Dict[str, Any], mentor) -> None:
     ]
 
     def submit_call_builder(key: str, chosen_text: str) -> str:
-        return f"mentor.submit_display({key!r}, {chosen_text!r})"
+        return (
+            f"mentor.submit_display({key!r}, {chosen_text!r})\n"
+            "# Optional: try fixing the prompt (no submission needed).\n"
+            "# In Gemini, reuse the same prompt, but replace the instruction about including ATG with:\n"
+            "#   Treat the returned \"RBS\" as the Shine-Dalgarno and spacer only.\n"
+            "# This keeps the start codon inside the CDS, so rbs + cds does not duplicate ATG.\n"
+            "#\n"
+            "# Also optional: replace 'Use a 7-nucleotide spacer' with 'Use the correctly-sized spacer'.\n"
+            "# After Gemini responds, ask: 'What spacer length did you pick, and why?'\n"
+            "# Notice how removing a constraint can produce a more informed result than a mistaken, overspecified instruction.\n"
+        )
 
     def gemini_prompt_builder(_: str) -> str:
         return (
