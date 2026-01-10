@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import List
+
 STEP_ID = "060"
 KEY = "CORRECTNESS_DIAGNOSIS"
 TITLE = "Correctness"
@@ -47,6 +49,18 @@ INVALID = [
 SUBMIT_STUB = None
 
 
+def gemini_prompt_builder(_prompt: str, options: List[str]) -> str:
+    lines: List[str] = []
+    lines.append("You are helping a student diagnose a failure in an RBS design workflow.")
+    lines.append("Scenario: a team used choose_rbs upstream of GFP and assembled the result by concatenating rbs + cds, but colonies did not turn green.")
+    lines.append("Choose the best explanation from the five options below.")
+    lines.append("Return the exact option text only.")
+    lines.append("")
+    for i, opt in enumerate(options, 1):
+        lines.append(f"{i}) {opt}")
+    return "\n".join(lines)
+
+
 def render(state) -> str:
     return PROMPT
 
@@ -61,6 +75,9 @@ def gui(state, mentor=None) -> None:
         prompt="### Multiple choice\n\nPick the best explanation, then click **Check**.",
         n_total=5,
         n_valid=1,
+        state=state,
+        state_key=STEP_ID,
+        gemini_prompt_builder=gemini_prompt_builder,
     )
 
 
