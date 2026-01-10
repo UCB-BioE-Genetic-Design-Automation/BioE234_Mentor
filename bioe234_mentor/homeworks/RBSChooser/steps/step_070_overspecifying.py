@@ -7,7 +7,7 @@ import re
 STEP_ID = "070"
 KEY = "OVERSPECIFYING"
 TITLE = "Detection puzzle: overspecifying a prompt"
-NEXT_STEP = None
+NEXT_STEP = "080"
 HASH_MODE = "json"
 
 # The student is expected to paste this into Gemini, then paste the generated code
@@ -59,16 +59,8 @@ def render(state: Dict[str, Any]) -> str:
 
 
 def shape_check(answer: Any) -> Tuple[bool, str]:
-    if not isinstance(answer, dict):
-        return False, "Submit a dict with keys 'choice' and 'code'."
-    if "choice" not in answer or "code" not in answer:
-        return False, "Your dict must include keys 'choice' and 'code'."
-    choice = answer.get("choice")
-    code = answer.get("code")
-    if not isinstance(choice, str) or not choice.strip():
-        return False, "'choice' must be a non-empty string."
-    if not isinstance(code, str) or not code.strip():
-        return False, "'code' must be a non-empty string containing the source of `choose_rbs`."
+    if not isinstance(answer, str) or not answer.strip():
+        return False, "Submit a non-empty string (your chosen option text)."
     return True, ""
 
 
@@ -81,73 +73,23 @@ VALID_CHOICES = [
 ]
 
 
-def validate(answer: Dict[str, Any], state: Dict[str, Any]):
-    choice = str(answer.get("choice", "")).strip()
-    code = str(answer.get("code", "")).strip()
+def validate(answer: Any, state: Dict[str, Any]):
+    choice = str(answer).strip()
 
     if choice not in VALID_CHOICES:
         return False, "That is not the issue we are targeting for the deterministic downstream failure.", {}
 
-    # Basic sanity checks for the pasted code.
-    if "def choose_rbs" not in code:
-        return False, "Paste the full function definition starting with `def choose_rbs(cds: str) -> str:`.", {}
-
-    # Execute in a minimal namespace.
-    ns: Dict[str, Any] = {}
-    try:
-        compiled = compile(code, "student_choose_rbs.py", "exec")
-        exec(compiled, ns, ns)
-    except Exception as e:
-        return False, f"I could not run the code you pasted ({type(e).__name__}: {e}).", {}
-
-    fn = ns.get("choose_rbs")
-    if not callable(fn):
-        return False, "I did not find a callable `choose_rbs` in the pasted code.", {}
-
-    # Deterministic, testable failure condition:
-    # cds begins with ATG. The bad prompt pushes ATG into the returned RBS, which
-    # produces ATGATG at the junction when concatenated.
-    test_cds = "ATG" + "GCT" * 20
-    try:
-        rbs = fn(test_cds)
-    except Exception as e:
-        return False, f"Your choose_rbs raised an exception on a test CDS ({type(e).__name__}: {e}).", {}
-
-    if not isinstance(rbs, str):
-        return False, "choose_rbs must return a string.", {}
-    rbs = rbs.strip().upper()
-    if not re.fullmatch(r"[ACGT]+", rbs or ""):
-        return False, "choose_rbs must return DNA letters only (A/C/G/T).", {}
-
-    combined = rbs + test_cds
-    junction = combined[max(0, len(rbs) - 6) : len(rbs) + 6]
-
-    expected = combined[len(rbs) - 3 : len(rbs) + 3] if len(rbs) >= 3 else ""
-    if not (rbs.endswith("ATG") and expected == "ATGATG"):
-        return False, (
-            "For this step, your pasted code should reflect the bad prompt and create a duplicated start codon "
-            "when concatenated as rbs + cds (junction contains ATGATG). "
-            "It did not. Make sure you defined `choose_rbs` using Gemini's output from the bad prompt, and that the submission captured its source correctly."
-        ), {
-            "rbs_end": rbs[-12:],
-            "junction_snippet": junction,
-        }
-
     return True, (
         "Nice. You found the failure mode the prompt is trying to bait.\n\n"
         "Now do a quick experiment (no submission needed).\n"
-        "Go back to Gemini and reuse the same prompt, but remove the instruction that says to include ATG in the returned RBS.\n"
-        "If you leave that instruction out, the model will usually default to returning an upstream-only RBS (no extra start codon).\n\n"
+        "Go back to Gemini and reuse the same prompt, but replace the instruction about including ATG with: 'Treat the returned “RBS” as the Shine-Dalgarno and spacer only.'\n"
+        "This keeps the start codon inside the CDS, so concatenating rbs + cds does not duplicate ATG.\n\n"
         "Optional: also try replacing 'Use a 7-nucleotide spacer' with 'Use the correctly-sized spacer'.\n"
         "This makes the instruction abstract, so the model will inject what it believes is the correct spacing.\n\n"
         "After Gemini responds, ask: 'What spacer length did you pick, and why?'\n"
         "Notice how removing a constraint can sometimes produce a more informed and correct result than a mistaken, overspecified instruction.\n"
         "If you are not sure what the right value is, define it abstractly and ask the model to choose and explain its choice."
-    ), {
-        "rbs_len": len(rbs),
-        "rbs_end": rbs[-12:],
-        "junction_snippet": junction,
-    }
+    ), {}
 
 
 def gui(state: Dict[str, Any], mentor) -> None:
@@ -163,8 +105,7 @@ def gui(state: Dict[str, Any], mentor) -> None:
 
     intro = HTML(
         "<div style='margin:0 0 10px 0;'>"
-        "<b>After defining <code>choose_rbs</code> in this notebook, answer the question below.</b><br>"
-        "Your submission will automatically capture the source of <code>choose_rbs</code> from the notebook."
+        "<b>Answer the multiple-choice question below.</b>"
         "</div>"
     )
 
@@ -221,9 +162,7 @@ def gui(state: Dict[str, Any], mentor) -> None:
     ]
 
     def submit_call_builder(key: str, chosen_text: str) -> str:
-        return (
-            f"mentor.submit_display({key!r}, {{'choice': {chosen_text!r}, 'code': __import__('inspect').getsource(choose_rbs)}})"
-        )
+        return f"mentor.submit_display({key!r}, {chosen_text!r})"
 
     def gemini_prompt_builder(_: str) -> str:
         return (
