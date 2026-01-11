@@ -1,5 +1,3 @@
-
-
 # RBSChooser homework
 
 ## What students learn
@@ -64,66 +62,282 @@ Teach students to read code critically by identifying edge cases, hidden assumpt
 
 ### step_090_restate_goal
 
-Have the student restate the RBSChooser2 goal in plain language to align on what will be built and what will be evaluated.
+Purpose
+- Transition from LLM workflow skills to building RBSChooser2.
+- Align on what will be built and what will be evaluated.
+
+Student actions
+- Restate the goal of RBSChooser2 in plain language.
+- Include what the input is, what the output is, and what the output must not include.
+
+Submission
+- `mentor.submit_display(KEY, text)`
+
+Validation
+- Shape check only.
+- Non-empty text.
+
+Notes
+- We do not grade biological correctness here. We grade clarity and alignment with the contract.
 
 ### step_100_choose_signature
 
-Have the student propose a deliberate signature for the real RBSChooser2 function rather than accepting an invented interface.
+Purpose
+- Lock the function interface before any implementation.
+
+Student actions
+- Write a one-line function signature for RBSChooser2 (name, inputs, outputs).
+- Keep it consistent with the restated goal from step 090.
+
+Submission
+- `mentor.submit_display(KEY, yaml_text)`
+
+Validation
+- Syntax-only YAML validation.
+- Required fields present (name, inputs, outputs).
+
+Notes
+- This signature becomes the contract used for later automated checks.
 
 ### step_110_architecture_outline
 
-Outline a decomposition into testable pieces (for example initiate, run, scoring helpers, and utilities).
+Purpose
+- Decompose the problem into testable pieces.
+
+Student actions
+- Outline a small module structure (functions and responsibilities).
+- Identify where data loading, preprocessing, scoring, and selection happen.
+
+Submission
+- `mentor.submit_display(KEY, yaml_or_bullets)`
+
+Validation
+- Shape check only.
+- Must name at least two components (for example initiate and run).
+
+Notes
+- The outline should be implementable in Colab without hidden dependencies.
 
 ### step_120_download_data
 
-Introduce reproducible data access in Colab and download or locate the provided datasets.
+Purpose
+- Ensure every student starts from the same datasets.
+
+Student actions
+- Run the provided cell that downloads or locates datasets.
+- Confirm files exist in expected paths.
+
+Submission
+- `mentor.submit_display(KEY, "ok")`
+
+Validation
+- Deterministic file existence checks.
+- Optional hash checks for known files.
+
+Notes
+- This step prevents silent failures later due to missing data.
 
 ### step_130_load_and_inspect
 
-Load the dataset(s) with pandas and perform basic sanity checks.
+Purpose
+- Build the habit of inspecting data before using it.
+
+Student actions
+- Load dataset(s) with pandas.
+- Report basic sanity checks (columns present, row count, missing values).
+
+Submission
+- `mentor.submit_display(KEY, yaml_text)`
+
+Validation
+- Shape check only.
+- Must include at least row_count and a short note about missingness.
+
+Notes
+- We do not enforce exact counts here unless the dataset is fixed and stable.
 
 ### step_140_prune_options
 
-Apply the assignment pruning rule to reduce to a high-quality subset.
+Purpose
+- Reduce the option space to a high quality subset using the assignment rule.
+
+Student actions
+- Apply the pruning rule to the dataset.
+- Report the before and after counts.
+
+Submission
+- `mentor.submit_display(KEY, yaml_text)`
+
+Validation
+- Shape check only.
+- Must include before_count and after_count.
+
+Notes
+- Later steps may enforce expected ranges once the dataset is finalized.
 
 ### step_150_merge_datasets
 
-Join/merge inputs needed for scoring and confirm expected row counts.
+Purpose
+- Combine inputs needed for scoring into one consistent table.
+
+Student actions
+- Perform required merges/joins.
+- Report final row count and confirm required columns exist.
+
+Submission
+- `mentor.submit_display(KEY, yaml_text)`
+
+Validation
+- Shape check only.
+- Must include row_count and a list of key columns.
+
+Notes
+- This step catches common join mistakes early.
 
 ### step_160_define_option_object
 
-Define a consistent internal representation for an RBS option and create a few example objects.
+Purpose
+- Define a consistent internal representation for an RBS option.
+
+Student actions
+- Define a small Python structure (dataclass or dict schema) for one option.
+- Show one example instance.
+
+Submission
+- `mentor.submit_display(KEY, code_text)`
+
+Validation
+- Shape check only.
+- Non-empty text that looks like Python code.
+
+Notes
+- This object is used by initiate and run.
 
 ### step_170_implement_initiate
 
-Implement and test `initiate()` so it returns a deterministic state object used by later steps.
+Purpose
+- Implement `initiate()` to build a deterministic state object used for selection.
+
+Student actions
+- Implement initiate.
+- Run a small check that the returned state is deterministic across runs.
+
+Submission
+- `mentor.submit_display(KEY, "ok")`
+
+Validation
+- Deterministic checks that required keys exist in the returned state.
+
+Notes
+- `initiate()` should not do per-CDS work.
 
 ### step_180_define_objectives
 
-Define the scoring objective(s) and how tradeoffs are handled.
+Purpose
+- Make the scoring objective explicit before coding selection logic.
+
+Student actions
+- Write a plain-language description of what run should optimize.
+- Include any tie-break rules.
+
+Submission
+- `mentor.submit_display(KEY, text)`
+
+Validation
+- Shape check only.
+- Non-empty text.
+
+Notes
+- This becomes the reference when students justify design choices later.
 
 ### step_190_implement_run
 
-Implement and test `run()` for a single CDS input.
+Purpose
+- Implement `run()` to choose an RBS for a given CDS using the prepared state.
+
+Student actions
+- Implement run.
+- Run on a provided test CDS and show the chosen option.
+
+Submission
+- `mentor.submit_display(KEY, "ok")`
+
+Validation
+- Deterministic checks on output type and alphabet constraints.
+- Must return an upstream-only RBS string.
+
+Notes
+- Biological optimality is not graded here. Basic invariants are.
 
 ### step_200_test_determinism_run
 
-Verify `run()` is deterministic and teach how to structure a reproducible test.
+Purpose
+- Confirm the selection logic is repeatable.
+
+Student actions
+- Run run() multiple times on the same CDS.
+- Confirm identical output.
+
+Submission
+- `mentor.submit_display(KEY, "ok")`
+
+Validation
+- Deterministic expected output for a fixed test CDS and fixed state.
+
+Notes
+- If the algorithm uses randomness, it must be seeded in the state.
 
 ### step_210_min_correctness_checks
 
-Add minimal invariants that can be checked automatically (for example spacing rules and alphabet constraints).
+Purpose
+- Add a small set of invariants that catch obvious mistakes.
+
+Student actions
+- Add checks for alphabet, upstream-only output, and basic spacing rules.
+- Run the checks on a few example CDS inputs.
+
+Submission
+- `mentor.submit_display(KEY, "ok")`
+
+Validation
+- Deterministic invariant checks.
+
+Notes
+- These checks should be fast and not require an LLM.
 
 ### step_220_utr_challenge
 
-Run the 5' UTR challenge portion of the assignment and summarize outputs.
+Purpose
+- Evaluate behavior on a small challenge set that stresses context effects.
+
+Student actions
+- Run the provided challenge driver.
+- Summarize outcomes in one short paragraph.
+
+Submission
+- `mentor.submit_display(KEY, text)`
+
+Validation
+- Shape check only.
+- Non-empty text.
+
+Notes
+- Instructors review this manually.
 
 ### step_230_final_submission
 
-Print the final submission package for bCourses (passcode, hashes, and key results).
+Purpose
+- Produce a final record for instructors to review.
 
-## Development notes
+Student actions
+- Run the final cell to print the submission package.
+- Paste it into bCourses.
 
-- Step scripts are plain Python files. Each file defines constants (STEP_ID, KEY, TITLE, NEXT_STEP) and three functions: `render(state)`, `shape_check(answer)`, and optionally `validate(answer, state)`.
-- The mentor loads steps dynamically and renders the step body using a small markdown-to-HTML renderer.
-- The goal is to keep the mentor strict about step order and lightweight about grading, while still nudging students toward good software practices.
+Submission
+- No new submission. This step prints the final package.
+
+Validation
+- The mentor report includes passcode and SHA1 fingerprints for prior submissions.
+
+Notes
+- Instructors review the report manually.
