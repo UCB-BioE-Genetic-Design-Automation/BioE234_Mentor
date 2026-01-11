@@ -63,12 +63,14 @@ The student must upload these two files to you in the chat so you can confirm fi
 ---
 
 ## Function lifecycle and caching (initiate vs run)
-RBSChooser is a function-as-object pattern:
 
-- `initiate()` runs once. It loads the raw data files, performs preprocessing, and builds a cached list of candidate options.
-- `run(cds, ignores)` runs many times. It selects a single RBSOption for an input CDS using the cached options.
+RBSChooser follows a function-as-object pattern. You create an instance of the class to serve as a specialized tool that "remembers" its data.
 
-The student should confirm `initiate()` is correct before writing `run()` by inspecting the cached variables produced by `initiate()`.
+initiate(): This method runs once and takes no arguments. It reads the raw data files (sequence.gb and 511145-WHOLE_ORGANISM-integrated.txt) directly from the environment, performs the necessary preprocessing, and builds a cached list of candidate RBSOption objects within the instance.
+
+run(cds, ignores): This method is invoked many times to perform the tool's primary task. It selects a single RBSOption for an input CDS by evaluating the cached options.
+
+The student should confirm initiate() is correct before writing run() by inspecting the cached variables (e.g., self.options) produced by initiate().
 
 ---
 
