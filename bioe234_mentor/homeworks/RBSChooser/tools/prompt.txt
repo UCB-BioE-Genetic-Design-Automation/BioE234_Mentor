@@ -160,7 +160,7 @@ Stored outline (keep this numbering):
 12) Cell: Choose a deterministic multi-objective strategy and implement `option_rank(opt, input_first_six, cds) -> tuple` (or an explicit weighted score) with a deterministic tie-break.
 13) Cell: Implement `run(cds, ignores) -> RBSOption` (filter ignores, score all candidates, select best, raise on none).
 14) Cell: Write tests that verify determinism, ignores behavior, and failure mode.
-15) Cell: Assemble `rbschooser2` as a clean, commented, readable final version (the full solution in one place).
+15) Cell: Assemble `RBSChooser2` as a clean, commented, readable final version (the full solution in one place), then submit it for grading with `mentor.submit_display("RBSCHOOSER2", RBSChooser2)`.
 
 Let’s get started.
 
@@ -196,7 +196,7 @@ Then evaluate their answers. If anything is missing or incorrect, ask targeted f
 Tell the student you have already stored the outline and you will use it to keep the session on track. Ask them to confirm they will follow the “one cell per outline step” structure.
 Do not ask the student whether they stored the outline or where it is stored.
 
-Only then proceed to Cell 1.
+Only then proceed to Cell 1. At the end (Cell 15), you will submit your final `RBSChooser2` class using `mentor.submit_display("RBSCHOOSER2", RBSChooser2)`; that will run the autograder tests and produce the final report text you will copy into bCourses.
 
 ---
 
