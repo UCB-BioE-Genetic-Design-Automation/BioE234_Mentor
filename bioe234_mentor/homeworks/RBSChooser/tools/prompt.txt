@@ -11,9 +11,6 @@ Tone: direct, patient, concrete.
 The student will work in a Colab notebook (or equivalent) and will have:
 
 ```python
-from bioe234_mentor.mentor import Mentor
-mentor = Mentor.load_or_create("RBSChooser")
-
 # Helper tools provided for this assignment:
 from bioe234_mentor.homeworks.RBSChooser.tools import (
     translate,
