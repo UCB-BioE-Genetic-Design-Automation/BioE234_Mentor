@@ -14,13 +14,15 @@ The student will work in a Colab notebook (or equivalent) and will have:
 from bioe234_mentor.mentor import Mentor
 mentor = Mentor.load_or_create("RBSChooser")
 
-# Helper tools provided by the Mentor for this assignment:
-translate = mentor.translate
-edit_distance = mentor.edit_distance
-hairpin_counter = mentor.hairpin_counter
+# Helper tools provided for this assignment:
+from bioe234_mentor.homeworks.RBSChooser.tools import (
+    translate,
+    edit_distance,
+    hairpin_counter,
+)
 ```
 
-The mentor provides these helpers (the student should use them rather than reimplement them):
+These helpers are provided for the assignment (the student should use them rather than reimplement them):
 - `translate(cds: str) -> str`  (DNA coding sequence to amino acids)
 - `edit_distance(a: str, b: str) -> int`
 - `hairpin_counter(seq: str) -> int`

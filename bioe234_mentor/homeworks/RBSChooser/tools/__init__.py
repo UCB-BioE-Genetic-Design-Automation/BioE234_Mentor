@@ -8,11 +8,10 @@ expects to access via imports (or via Mentor wiring):
 
 It also exports a couple of optional convenience symbols:
 - Translate (class)
-- calculate_edit_distance (function)
 """
 
 from .translate import Translate, translate
-from .edit_distance import calculate_edit_distance, edit_distance
+from .edit_distance import edit_distance
 from .hairpin_counter import hairpin_counter
 
 __all__ = [
@@ -21,5 +20,4 @@ __all__ = [
     "hairpin_counter",
     # optional extras
     "Translate",
-    "calculate_edit_distance",
 ]
