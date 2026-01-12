@@ -265,9 +265,12 @@ def _load_prompt_text() -> str:
 
 def render(state: Dict[str, Any]) -> str:
     return (
-        "Paste the prompt into your LLM of choice, and follow its guidance to build the class in this notebook.\n\n"
-        "Use the Copy for Gemini button below to copy the full prompt to your clipboard.\n\n"
-        "When you have defined the `RBSChooser2` class in this notebook, submit the class object.\n\n"
+        "Open a new chat with your LLM of choice. Starting fresh lets you control what context the model sees. "
+        "If you continue an older chat, unrelated examples and even bad algorithms can leak in and steer the model in the wrong direction. "
+        "Unless the old context is essential, use a new chat as a blank slate.\n"
+        "Use the Copy for Gemini button below to copy the full prompt to your clipboard.\n"
+        "Paste the prompt and then follow its guidance to build RBSChooser2\n\n"
+        "When you have defined the `RBSChooser2` class in this notebook, submit it as.\n\n"
         "Submission:\n"
         "```python\n"
         "mentor.submit_display('RBSCHOOSER2', RBSChooser2)\n"
@@ -295,7 +298,374 @@ def shape_check(answer: Any) -> Tuple[bool, str]:
 
 
 def validate(answer: Any, state: Dict[str, Any]):
-    return True, "Thanks. Next we will test and refine your implementation one step at a time.", {}
+    import inspect
+    import time
+    from types import ModuleType
+
+    report: Dict[str, Any] = {
+        "tests": [],
+        "timing": {},
+        "notes": [],
+    }
+
+    def add_test(name: str, ok: bool, details: str = "", **extra: Any) -> None:
+        item: Dict[str, Any] = {"name": name, "ok": bool(ok)}
+        if details:
+            item["details"] = details
+        item.update(extra)
+        report["tests"].append(item)
+
+    def _get_runner(cls_obj):
+        """Return (runner, mode) where runner is either an instance or the class itself."""
+        try:
+            runner = cls_obj()  # prefer instance methods
+            return runner, "instance"
+        except Exception:
+            return cls_obj, "class"
+
+    def _call_initiate(runner):
+        fn = getattr(runner, "initiate")
+        try:
+            return fn()
+        except TypeError:
+            # Try classmethod-like call
+            return fn(runner)
+
+    def _call_run(runner, cds: str, ignores: Any):
+        fn = getattr(runner, "run")
+
+        # Try common call shapes.
+        try:
+            return fn(cds, ignores)
+        except TypeError:
+            pass
+        try:
+            return fn(cds)
+        except TypeError:
+            pass
+        try:
+            return fn(cds=cds, ignores=ignores)
+        except TypeError:
+            pass
+        try:
+            return fn(cds=cds)
+        except TypeError:
+            pass
+
+        # Last resort: attempt to bind signature and call.
+        sig = inspect.signature(fn)
+        kwargs: Dict[str, Any] = {}
+        for pname, param in sig.parameters.items():
+            if pname in ("self", "cls"):
+                continue
+            if pname.lower() == "cds":
+                kwargs[pname] = cds
+            elif pname.lower() == "ignores":
+                kwargs[pname] = ignores
+        return fn(**kwargs)
+
+    def _looks_like_option(obj: Any) -> bool:
+        for attr in ("utr", "cds", "gene_name", "first_six_aas"):
+            if not hasattr(obj, attr):
+                return False
+        return True
+
+    def _first_six_aas(cds: str) -> str:
+        from bioe234_mentor.homeworks.RBSChooser.tools import translate
+
+        aa = translate(cds)
+        return aa[:6]
+
+    def _try_get_options(runner, initiate_ret: Any):
+        # Prefer explicit return.
+        if isinstance(initiate_ret, list) and initiate_ret:
+            return initiate_ret
+
+        # Common attribute names.
+        for name in ("options", "candidate_options", "candidates"):
+            if hasattr(runner, name):
+                val = getattr(runner, name)
+                if isinstance(val, list) and val:
+                    return val
+
+        # Try class attribute if runner is an instance.
+        cls_obj = runner if isinstance(runner, type) else type(runner)
+        for name in ("options", "candidate_options", "candidates"):
+            if hasattr(cls_obj, name):
+                val = getattr(cls_obj, name)
+                if isinstance(val, list) and val:
+                    return val
+
+        return None
+
+    def _instrument_hairpin_counter(runner):
+        """Monkeypatch hairpin_counter references used by run to count calls."""
+        stats: Dict[str, Any] = {"calls": 0, "seq_lens": []}
+
+        # Identify underlying function object.
+        run_attr = getattr(runner, "run")
+        base_func = getattr(run_attr, "__func__", run_attr)
+        g = getattr(base_func, "__globals__", {})
+
+        patches = []  # (container, key, original)
+
+        def make_wrapper(original):
+            def wrapped(seq: str):
+                stats["calls"] += 1
+                try:
+                    stats["seq_lens"].append(len(seq))
+                except Exception:
+                    pass
+                return original(seq)
+
+            # Preserve a useful name for debugging.
+            try:
+                wrapped.__name__ = getattr(original, "__name__", "hairpin_counter")
+            except Exception:
+                pass
+            return wrapped
+
+        # Patch direct global name bindings.
+        for k, v in list(g.items()):
+            if callable(v) and getattr(v, "__name__", "") == "hairpin_counter":
+                wrapper = make_wrapper(v)
+                g[k] = wrapper
+                patches.append((g, k, v))
+
+        # Patch module references in globals.
+        for k, v in list(g.items()):
+            if isinstance(v, ModuleType) and hasattr(v, "hairpin_counter"):
+                orig = getattr(v, "hairpin_counter")
+                if callable(orig) and getattr(orig, "__name__", "") == "hairpin_counter":
+                    wrapper = make_wrapper(orig)
+                    setattr(v, "hairpin_counter", wrapper)
+                    patches.append((v, "hairpin_counter", orig))
+
+        return stats, patches
+
+    def _restore_patches(patches):
+        for container, key, original in patches:
+            try:
+                if isinstance(container, dict):
+                    container[key] = original
+                else:
+                    setattr(container, key, original)
+            except Exception:
+                pass
+
+    # 0) Instantiate runner
+    runner, mode = _get_runner(answer)
+    add_test("instantiate", True, f"Runner mode: {mode}")
+
+    # 1) initiate timing and options
+    t0 = time.perf_counter()
+    try:
+        initiate_ret = _call_initiate(runner)
+        t1 = time.perf_counter()
+        report["timing"]["initiate_s"] = round(t1 - t0, 6)
+        add_test("initiate_runs", True, f"initiate completed in {report['timing']['initiate_s']} s")
+    except Exception as e:
+        t1 = time.perf_counter()
+        report["timing"]["initiate_s"] = round(t1 - t0, 6)
+        add_test("initiate_runs", False, f"initiate raised: {type(e).__name__}: {e}")
+        return False, "Your RBSChooser2.initiate() raised an exception. Fix that first.", report
+
+    options = _try_get_options(runner, initiate_ret)
+    if options is None:
+        add_test(
+            "options_present",
+            False,
+            "Could not find a non-empty options list (return from initiate or attribute like self.options).",
+        )
+        report["notes"].append("Make sure initiate() builds and stores a list of RBSOption candidates.")
+    else:
+        add_test("options_present", True, f"Found {len(options)} candidate options.", n_options=len(options))
+        # Quick structural checks on a few options.
+        sample = options[:3]
+        ok_struct = all(_looks_like_option(o) for o in sample)
+        add_test("option_shape", ok_struct, "Options should have utr, cds, gene_name, first_six_aas")
+
+    # Timing heuristics
+    init_s = report["timing"].get("initiate_s", None)
+    if isinstance(init_s, (int, float)):
+        if init_s < 0.05:
+            report["notes"].append("initiate() ran unusually fast. Make sure you are parsing both files and building real options.")
+        if init_s > 30.0:
+            report["notes"].append("initiate() was unusually slow. Consider caching and avoiding repeated expensive work.")
+
+    # 2) Prepare test CDS variants
+    base_cds = "ATG" + "GCT" + "GCT" + "GCT" + "GCT" + "GCT" + "GCT" + ("GCT" * 10)
+    # Silent: GCT -> GCC at codon 2 (still Ala)
+    silent_cds = "ATG" + "GCC" + base_cds[6:]
+    # Missense: GCT -> ACT at codon 2 (Ala -> Thr)
+    missense_cds = "ATG" + "ACT" + base_cds[6:]
+
+    aa_base = _first_six_aas(base_cds)
+    aa_silent = _first_six_aas(silent_cds)
+    aa_missense = _first_six_aas(missense_cds)
+
+    add_test("peptide_probe_setup", True, "Computed first six AAs for base, silent, missense.",
+             aa_base=aa_base, aa_silent=aa_silent, aa_missense=aa_missense)
+
+    # Sanity: silent should match base; missense should differ.
+    if aa_base != aa_silent:
+        report["notes"].append("Unexpected: silent variant changed first six amino acids. The translate() helper may behave differently than expected.")
+    if aa_base == aa_missense:
+        report["notes"].append("Unexpected: missense variant did not change first six amino acids. The probe may be ineffective.")
+
+    # 3) Instrument hairpin_counter usage during run
+    hairpin_stats, patches = _instrument_hairpin_counter(runner)
+
+    def safe_run_once(cds: str, ignores: Any):
+        return _call_run(runner, cds, ignores)
+
+    # 4) Determinism and output checks
+    ignores_empty = set()
+    t_runs = []
+    outputs = []
+    run_exception = None
+
+    try:
+        for _ in range(5):
+            t0 = time.perf_counter()
+            out = safe_run_once(base_cds, ignores_empty)
+            t1 = time.perf_counter()
+            t_runs.append(t1 - t0)
+            outputs.append(out)
+    except Exception as e:
+        run_exception = e
+    finally:
+        _restore_patches(patches)
+
+    if run_exception is not None:
+        add_test("run_executes", False, f"run raised: {type(run_exception).__name__}: {run_exception}")
+        return False, "Your RBSChooser2.run() raised an exception on a basic input. Fix that first.", report
+
+    add_test("run_executes", True, "run executed successfully on a basic input.")
+
+    report["timing"]["run_mean_s"] = round(sum(t_runs) / max(1, len(t_runs)), 6)
+    report["timing"]["run_p95_s"] = round(sorted(t_runs)[int(0.95 * (len(t_runs) - 1))], 6) if t_runs else None
+
+    # Output must look like an RBSOption
+    out0 = outputs[0]
+    add_test("run_returns_option", _looks_like_option(out0), "run should return an RBSOption-like object")
+
+    # Determinism: stable identity across repeats
+    def _opt_id(o: Any) -> Tuple[Any, Any, Any, Any]:
+        try:
+            return (getattr(o, "gene_name"), getattr(o, "utr"), getattr(o, "cds"), getattr(o, "first_six_aas"))
+        except Exception:
+            return (repr(o), None, None, None)
+
+    ids = [_opt_id(o) for o in outputs]
+    deterministic = all(i == ids[0] for i in ids)
+    add_test("determinism", deterministic, "Same input should return the same option 5 times.")
+
+    if report["timing"]["run_mean_s"] is not None:
+        if report["timing"]["run_mean_s"] < 0.001:
+            report["notes"].append("run() was extremely fast. If you always return the first option, you will fail later checks.")
+        if report["timing"]["run_mean_s"] > 1.0:
+            report["notes"].append("run() was slow. Make sure you are not reparsing files or doing heavy work per call.")
+
+    # 5) Ignores behavior
+    ignores_ok = False
+    ignores_detail = ""
+    try:
+        opt1 = safe_run_once(base_cds, set())
+        try:
+            ignores1 = {opt1}
+        except TypeError:
+            ignores1 = None
+
+        if ignores1 is None:
+            ignores_ok = False
+            ignores_detail = "Returned option is not hashable, so it cannot be placed into a set for ignores."
+        else:
+            opt2 = safe_run_once(base_cds, ignores1)
+            ignores_ok = _opt_id(opt2) != _opt_id(opt1)
+            ignores_detail = "Second call returned a different option when the first was ignored." if ignores_ok else "Second call returned the same option even though it was ignored."
+    except Exception as e:
+        ignores_ok = False
+        ignores_detail = f"ignores test raised: {type(e).__name__}: {e}"
+
+    add_test("ignores", ignores_ok, ignores_detail)
+
+    # 6) Hairpin counter evidence
+    calls = int(hairpin_stats.get("calls", 0))
+    lens = hairpin_stats.get("seq_lens", [])
+    if calls > 0:
+        add_test("hairpin_counter_used", True, f"hairpin_counter called {calls} times.", calls=calls,
+                 seq_len_min=min(lens) if lens else None, seq_len_max=max(lens) if lens else None)
+    else:
+        add_test("hairpin_counter_used", False, "No evidence that hairpin_counter was called during run().")
+        report["notes"].append("The prompt expects run() to use hairpin_counter to score occlusion near the junction.")
+
+    # 7) Peptide sensitivity probe (signal only)
+    try:
+        out_silent = safe_run_once(silent_cds, set())
+        out_missense = safe_run_once(missense_cds, set())
+        same_silent = _opt_id(out_silent) == _opt_id(out0)
+        same_missense = _opt_id(out_missense) == _opt_id(out0)
+
+        # We expect missense to be more likely to change the selected option than silent.
+        if (not same_missense) and same_silent:
+            add_test("peptide_sensitivity", True, "Missense changed the choice, silent did not.")
+        elif not same_missense:
+            add_test("peptide_sensitivity", True, "Missense changed the choice.")
+            report["notes"].append("Silent mutation also changed the choice. This can happen if you score occlusion on the CDS nucleotides.")
+        else:
+            add_test("peptide_sensitivity", False, "Missense did not change the selected option in this probe.")
+            report["notes"].append("If you are not using first six amino acids in scoring, your chooser may fail later expectations.")
+    except Exception as e:
+        add_test("peptide_sensitivity", False, f"peptide probe raised: {type(e).__name__}: {e}")
+
+    # Overall decision
+    required = {
+        "initiate_runs": True,
+        "options_present": True,
+        "run_executes": True,
+        "run_returns_option": True,
+        "determinism": True,
+        "ignores": True,
+        "hairpin_counter_used": True,
+    }
+
+    results = {t["name"]: t["ok"] for t in report["tests"]}
+    hard_fail = [name for name, want in required.items() if want and not results.get(name, False)]
+
+    # Message to the student
+    lines = []
+    lines.append("RBSChooser2 automated check report")
+    lines.append("")
+
+    for t in report["tests"]:
+        mark = "OK" if t["ok"] else "FAIL"
+        line = f"- {mark}: {t['name']}"
+        if t.get("details"):
+            line += f"  ({t['details']})"
+        lines.append(line)
+
+    lines.append("")
+    if report["timing"]:
+        lines.append("Timing")
+        for k, v in report["timing"].items():
+            lines.append(f"- {k}: {v}")
+        lines.append("")
+
+    if report["notes"]:
+        lines.append("Notes")
+        for n in report["notes"]:
+            lines.append(f"- {n}")
+        lines.append("")
+
+    if hard_fail:
+        lines.append("Status")
+        lines.append("- Not done yet. Fix the failed items above, then resubmit your class.")
+        return False, "\n".join(lines), report
+
+    lines.append("Status")
+    lines.append("- Looks good enough to proceed to the next step.")
+    return True, "\n".join(lines), report
 
 
 def gui(state: Dict[str, Any], mentor) -> None:
