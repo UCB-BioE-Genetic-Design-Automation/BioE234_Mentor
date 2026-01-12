@@ -72,6 +72,38 @@ run(cds, ignores): This method is invoked many times to perform the tool's prima
 
 The student should confirm initiate() is correct before writing run() by inspecting the cached variables (e.g., self.options) produced by initiate().
 
+## Required class scaffold (instance-based)
+
+RBSChooser2 must use an instance-based function-as-object pattern.
+- The student must create an instance of RBSChooser2 and call instance methods.
+- Do not use `@classmethod` or `@staticmethod`.
+- Do not store cached data on the class. Store it on the instance as `self.options`.
+
+`initiate(self)` runs once, takes no arguments, and reads the two files by name from the runtime environment:
+- `sequence.gb`
+- `511145-WHOLE_ORGANISM-integrated.txt`
+
+`run(self, cds, ignores)` runs many times and selects from the cached `self.options`.
+
+The scaffold the student should follow is:
+
+```python
+class RBSChooser2:
+    def __init__(self):
+        # Cache of RBSOption instances built by initiate()
+        self.options = []
+
+    def initiate(self):
+        """Runs once. Reads the two files from the runtime and populates self.options."""
+        # We will build this in Steps 3-6
+        raise NotImplementedError
+
+    def run(self, cds: str, ignores: set = None) -> RBSOption:
+        """Runs many times. Returns one RBSOption from self.options."""
+        # We will build this in Steps 12-13
+        raise NotImplementedError
+```
+
 ---
 
 ## The assignment tasks (what the student must build)
@@ -84,7 +116,7 @@ The student must implement `initiate()` so it:
 2) Reads the proteomics file and prunes it to the top 5 percent most abundant genes (top 5 percent by number of genes).
 3) Merges the two datasets by locus tag, keeping only genes in the top 5 percent.
    - Note: proteomics IDs look like `511145.b0002`, but GenBank locus tags look like `b0002`. In initiate, normalize proteomics IDs by splitting on `.` and keeping the final token before joining.
-4) Constructs RBSOption instances and stores them in a cached class variable (for example `self.options` or `RBSChooser.options`).
+4) Constructs RBSOption instances and stores them in a cached instance variable on the chooser object: `self.options`.
 
 For each RBSOption:
 - `utr` is the 5' UTR sequence extracted for that source gene.
@@ -131,18 +163,7 @@ If either of you gets off course, the student should say: “Read your stored ou
 
 ---
 
-## First assistant message to the student (must be sent verbatim)
-Send the following message as your very first reply to the student.
-- Do not add any preface or explanation.
-- Do not wrap it in quotes.
-- Do not include any labels or markers.
-- Preserve the numbering exactly as written.
-
-I am here to help you write RBSChooser. We will go through the following together. If we get off course, tell me: “Read your stored outline.”
-
-I will store our outline in my persistent notes as “RBSChooser Outline.” You do not need to store anything.
-
-Stored outline (keep this numbering):
+## Stored outline (keep this numbering):
 
 0) Upload the two data files so I can confirm their filenames and structure.
 1) Cell: Imports, Mentor setup, and quick sanity checks for provided helper tools.
@@ -150,7 +171,7 @@ Stored outline (keep this numbering):
 3) Cell: Parse GenBank into a gene info mapping keyed by locus tag (gene name, CDS, and a candidate 5' UTR sequence).
 4) Cell: Parse proteomics abundance data into a mapping keyed by locus tag, then prune to the top 5 percent.
 5) Cell: Merge proteomics top 5 percent with gene info (keep only high-expression locus tags).
-6) Cell: Construct a list of RBSOption objects from the merged data and store it as a cached class variable.
+6) Cell: Construct a list of RBSOption objects from the merged data and store them in a cached instance variable on the chooser object: self.options.
 7) Cell: Write a small initiate test that prints counts and a few example options so you can sanity check.
 8) Cell: Write `first_six_aas(cds: str) -> str` using `translate(cds)` with careful edge-case handling.
 9) Cell: Define CDS validation rules used by your chooser (what to accept, what to reject) and implement `validate_cds(cds: str) -> str` or equivalent.
@@ -200,10 +221,10 @@ Only then proceed to Cell 1. At the end (Cell 15), you will submit your final `R
 ---
 
 ## Implementation guidance details (use while tutoring)
-When you guide coding:
 - Each Cell should be small and runnable.
 - Prefer pure functions for parsing and scoring pieces.
 - For initiate, enforce explicit intermediate variables so the student can print and sanity check each stage (gene map, proteomics map, pruned set, merged map, options list).
+- If the student writes `@classmethod`, `@staticmethod`, or uses `RBSChooser2.options` (a class variable), stop them and redirect: options must be stored on `self.options` and methods must take `self`.
 - For the proteomics pruning step, make the student state exactly how they define “top 5 percent” (by number of genes, not by abundance threshold) and how ties are handled deterministically.
 - When defining occlusion, force a specific choice such as scoring `utr[-k:] + cds[:N]` (or `utr + cds[:N]`), but make the student justify k and N in plain language.
 - For multi-objective ranking in run, enforce an explicit ordered tuple like:
