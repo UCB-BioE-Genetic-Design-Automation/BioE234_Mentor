@@ -18,6 +18,8 @@ __all__ = [
     "translate",
     "edit_distance",
     "hairpin_counter",
+    "rbs_option",
+
     # optional extras
     "Translate",
 ]
