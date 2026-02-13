@@ -6,7 +6,7 @@ from typing import Any, Dict, Tuple
 STEP_ID = "100"
 KEY = "RBSCHOOSER2"
 TITLE = "Build RBSChooser2"
-NEXT_STEP = "110"
+NEXT_STEP = "DONE"
 HASH_MODE = "callable"
 
 
