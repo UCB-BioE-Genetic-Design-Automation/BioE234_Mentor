@@ -42,7 +42,7 @@ def shape_check(answer: Any) -> Tuple[bool, str]:
 
     name = answer.strip()
     if name != "511145-WHOLE_ORGANISM-integrated.txt":
-        return False, "Submit the exact filename: 511145-WHOLE_ORGANISM-integrated.txt"
+        return False, "Submit the exact filename."
 
     return True, ""
 
@@ -54,7 +54,7 @@ def validate(answer: Any, state: Dict[str, Any]):
 
     expected = "511145-WHOLE_ORGANISM-integrated.txt"
     if name != expected:
-        return False, f"Submit the exact filename: {expected}", {}
+        return False, f"Submit the exact filename.", {}
 
     if not Path(expected).exists():
         return False, (
