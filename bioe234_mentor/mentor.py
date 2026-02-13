@@ -519,8 +519,7 @@ class Mentor:
         subs = self._state.get("submissions", {})
         passcode = self._state.get("passcode")
         lines: list[str] = []
-        lines.append("## Final submission package\n")
-        lines.append("Copy and paste the block below into bCourses.\n")
+        lines.append("## ## ## ## Final submission package ## ## ## ## \n")
         lines.append("```text")
         lines.append(f"HOMEWORK: {self.homework}")
         lines.append(f"PASSCODE: {passcode}")
